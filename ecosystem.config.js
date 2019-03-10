@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'dbalas.dev',
-    script: 'yarn start',
+    script: 'server/index.js',
     exec_mode: 'cluster', // enables clustering
     instances: 'max', // or an integer
     autorestart: true,
