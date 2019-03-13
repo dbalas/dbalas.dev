@@ -1,55 +1,81 @@
 <template>
-  <div>
-    <nuxt />
+  <div class="container">
+    <div class="row">
+      <line-menu />
+      <div class="content">
+        <nuxt />
+      </div>
+    </div>
   </div>
 </template>
 
-<style>
-html {
-  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 16px;
-  word-spacing: 1px;
-  -ms-text-size-adjust: 100%;
-  -webkit-text-size-adjust: 100%;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-font-smoothing: antialiased;
-  box-sizing: border-box;
+<script>
+import LineMenu from '~/components/LineMenu.vue'
+
+export default {
+  components: {
+    LineMenu
+  }
 }
+</script>
+
+<style lang="scss">
+@import '~assets/variables';
+@import url(https://fonts.googleapis.com/css?family=Open+Sans:400);
 
 *,
-*:before,
-*:after {
-  box-sizing: border-box;
+*::before,
+*::after {
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.button--green {
-  display: inline-block;
-  border-radius: 4px;
-  border: 1px solid #3b8070;
-  color: #3b8070;
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s;
+}
+
+.page-enter,
+.page-leave-active {
+  opacity: 0;
+}
+
+a {
   text-decoration: none;
-  padding: 10px 30px;
+  color: $primary;
 }
 
-.button--green:hover {
-  color: #fff;
-  background-color: #3b8070;
+.container {
+  box-sizing: border-box;
+  background: linear-gradient($background, $background),
+    url(~assets/background.jpeg) 50% / cover fixed;
+  color: $fontColor;
+  font: 400 1em/ 1.25 open sans, sans-serif;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
-.button--grey {
-  display: inline-block;
-  border-radius: 4px;
-  border: 1px solid #35495e;
-  color: #35495e;
-  text-decoration: none;
-  padding: 10px 30px;
-  margin-left: 15px;
+.row {
+  width: 100%;
+  max-width: 960px;
+  padding: 2rem;
+  display: flex;
+
+  @media (max-width: 600px) {
+    display: block;
+  }
 }
 
-.button--grey:hover {
-  color: #fff;
-  background-color: #35495e;
+.content {
+  width: 100%;
+  padding: 0 0 0 3rem;
+
+  @media (max-width: 600px) {
+    padding: 1rem 0;
+  }
 }
 </style>
