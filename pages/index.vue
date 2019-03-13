@@ -17,7 +17,7 @@
     </p>
     <br />
     <p>
-      Outside of computer science and raise my kid together with my wife, I
+      Outside of computer science and raising my kid together with my wife, I
       enjoy video games, cinema and reading.
     </p>
   </div>
