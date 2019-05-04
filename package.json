@@ -16,7 +16,7 @@
     "@nuxtjs/axios": "^5.4.1",
     "@nuxtjs/pwa": "^3.0.0-beta.12",
     "cross-env": "^5.2.0",
-    "fastify": "^2.0.1",
+    "fastify": "^2.3.0",
     "nuxt": "^2.4.5"
   },
   "devDependencies": {
