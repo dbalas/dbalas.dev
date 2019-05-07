@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@nuxtjs/axios": "^5.4.1",
-    "@nuxtjs/pwa": "^3.0.0-beta.12",
+    "@nuxtjs/pwa": "^3.0.0-beta.14",
     "cross-env": "^5.2.0",
     "fastify": "^2.3.0",
     "nuxt": "^2.4.5"
