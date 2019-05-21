@@ -1,19 +1,13 @@
 <template>
-  <nav id="line-menu" :style="{ '--hover': hover }">
+  <nav id="line-menu">
     <component
       :is="linkEl(item.href).is"
-      v-for="(item, index) in items"
+      v-for="item in items"
       :key="item.id"
-      v-bind="linkEl(item.href)"
+      v-bind="linkEl(item.href, item.title)"
     >
-      <span
-        :class="{ current: current === index }"
-        @click="onClick(index)"
-        @mouseover="onMouseOver(index)"
-      >
-        <img v-if="item.icon" :src="item.icon" />
-        {{ item.text }}
-      </span>
+      <img v-if="item.icon" :src="item.icon" />
+      {{ item.text }}
     </component>
   </nav>
 </template>
@@ -22,37 +16,21 @@
 export default {
   data() {
     return {
-      current: 0,
-      hover: 0,
       items: [
         {
-          id: 'hello',
-          href: '/',
-          text: 'Hello'
+          id: 'github',
+          href: 'https://github.com/dbalas',
+          icon: require('~/assets/github.svg')
         },
         {
           id: 'pocket',
           href: 'https://getpocket.com/@dbalas',
-          text: 'Pocket',
           icon: require('~/assets/pocket.svg')
-        },
-        {
-          id: 'github',
-          href: 'https://github.com/dbalas',
-          text: 'GitHub',
-          icon: require('~/assets/github.svg')
         },
         {
           id: 'linkedin',
           href: 'https://www.linkedin.com/in/danielbalastegui',
-          text: 'LinkedIn',
           icon: require('~/assets/linkedin.svg')
-        },
-        {
-          id: 'contact',
-          href: 'mailto:dbalasdev@gmail.com',
-          text: 'Email',
-          icon: require('~/assets/email.svg')
         }
       ]
     }
@@ -62,7 +40,7 @@ export default {
     this.current = this.hover = index || 0
   },
   methods: {
-    linkEl(href) {
+    linkEl(href, title) {
       if (href.match(/http(s)?|mailto/)) {
         return {
           is: 'a',
@@ -88,55 +66,88 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '~assets/variables';
-$border: 1px;
-$lineHeight: 5;
-$fontSize: 1em;
-
-nav {
-  --h: #{$lineHeight * $fontSize};
-  position: relative;
-  border-left: solid $border;
-  font-size: $fontSize;
-  line-height: $lineHeight;
-
-  &:after {
-    position: absolute;
-    top: 0;
-    left: -$border - 1px;
-    width: $border + 2px;
-    height: var(--h);
-    border-radius: 0.5 * $border + 1px;
-    background: $primary;
-    transform: translatey(calc(var(--hover) * var(--h)));
-    transition: transform 0.3s cubic-bezier(0.2, 0.6, 0.35, 1);
-    content: '';
+@keyframes circle-1 {
+  0% {
+    opacity: 0;
   }
-
-  a {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 1em;
-    min-width: 10em;
-    height: var(--h);
-    color: inherit;
-    text-transform: uppercase;
-
-    span {
-      display: flex;
-      align-items: center;
-      img {
-        width: 1.5rem;
-        height: 1.5rem;
-        margin-right: 1rem;
-      }
-    }
+  100% {
+    top: -10px;
+    right: -10px;
+    bottom: -10px;
+    left: -10px;
+    opacity: 0.3;
   }
 }
 
-.current {
-  --iscurr: 1;
-  font-weight: 600;
+@keyframes circle-2 {
+  100% {
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
+    opacity: 0.1;
+  }
+}
+
+nav {
+  position: relative;
+  width: 100%;
+  display: flex;
+
+  a {
+    position: relative;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-right: 4rem;
+    border-radius: 50%;
+
+    &:last-child {
+      margin-right: 0;
+    }
+
+    img {
+      width: 100%;
+      height: auto;
+    }
+
+    &:after {
+      content: '';
+      position: absolute;
+      z-index: 1;
+      top: -10px;
+      right: -10px;
+      bottom: -10px;
+      left: -10px;
+      background-color: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: none;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      z-index: 1;
+      top: -20px;
+      right: -20px;
+      bottom: -20px;
+      left: -20px;
+      background-color: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      display: none;
+    }
+
+    &:hover {
+      &:before {
+        display: block;
+        animation: circle-1 1s linear infinite;
+      }
+      &:after {
+        display: block;
+        animation: circle-2 1s linear infinite;
+      }
+    }
+  }
 }
 </style>

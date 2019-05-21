@@ -1,37 +1,34 @@
 <template>
   <div id="hello">
-    <p>
-      <b>Hello!</b> My name is Daniel Balastegui and I am a software engineer
-      with a special love for web technologies.
-    </p>
+    <h1>Hello. I'm Daniel.</h1>
     <br />
-    <p>
-      These last years I developed a predilection for JavaScript, being my main
-      language and interest right now.
-    </p>
-    <br />
-    <p>
-      I consider myself a rigorous and restless person, always learning and
-      trying to improve my skills while doing projects.
-      <a href="mailto:dbalasdev@gmail.com">¿Do you have any suggestion?</a>
-    </p>
-    <br />
-    <p>
-      Outside of computer science and raising my kid together with my wife, I
-      enjoy video games, cinema and reading.
-    </p>
+    <h2>SOFTWARE ENGINEER, WEB ENTHUSIAST, EAGER LEARNER</h2>
   </div>
 </template>
 
 <style lang="scss">
-@import '~assets/variables';
+$primary: #00f3f3;
+
 #hello {
-  background: $white;
   border-radius: 1rem;
   height: 100%;
-  color: $black;
-  padding: 1rem;
-  font-size: 1.2em;
+  margin: 0 0 2rem 0;
+  padding: 2rem 0;
+  color: white;
   line-height: 1.8rem;
+}
+
+h1 {
+  display: inline-block;
+  margin-bottom: 1rem;
+  line-height: 5rem;
+  font-size: 3.5rem;
+  border-bottom: 4px solid $primary;
+}
+
+h2 {
+  margin-top: 1rem;
+  font-weight: 400;
+  font-size: 1.6rem;
 }
 </style>
