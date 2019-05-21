@@ -1,6 +1,6 @@
 <template>
   <div id="hello">
-    <h1>Hello. I'm Daniel.</h1>
+    <h1>Hello. <span>I'm Daniel.</span></h1>
     <br />
     <h2>SOFTWARE ENGINEER, WEB ENTHUSIAST, EAGER LEARNER</h2>
   </div>
@@ -24,6 +24,10 @@ h1 {
   line-height: 5rem;
   font-size: 3.5rem;
   border-bottom: 4px solid $primary;
+
+  span {
+    white-space: nowrap;
+  }
 }
 
 h2 {

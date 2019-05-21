@@ -63,9 +63,13 @@ export default {
         .attr('y2', d => d.y2)
     }
 
+    let width = window.innerWidth
+    if (width <= 1400) width = window.innerHeight * 2
+
     const svg = d3
       .select('#sky-map')
       .append('svg')
+      .attr('width', width)
       .attr('viewBox', '0 0 1000 1000')
       .attr('preserveAspectRatio', 'xMinYMin meet')
       .call(glow)
