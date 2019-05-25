@@ -20,7 +20,7 @@ function glow(selection) {
   filter
     .append('feGaussianBlur')
     .attr('result', 'blurred')
-    .attr('stdDeviation', '2')
+    .attr('stdDeviation', '2¡1.6')
 
   const feMerge = filter.append('feMerge')
 
