@@ -18,7 +18,7 @@
     "cross-env": "^5.2.0",
     "d3": "^5.9.2",
     "fastify": "^2.6.0",
-    "nuxt": "^2.7.1"
+    "nuxt": "^2.8.1"
   },
   "devDependencies": {
     "@nuxtjs/eslint-config": "^0.0.1",
