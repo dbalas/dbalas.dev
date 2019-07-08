@@ -21,7 +21,7 @@
     "nuxt": "^2.8.1"
   },
   "devDependencies": {
-    "@nuxtjs/eslint-config": "^0.0.1",
+    "@nuxtjs/eslint-config": "^1.0.1",
     "autoprefixer": "^9.6.0",
     "babel-eslint": "^10.0.1",
     "eslint": "^5.16.0",
