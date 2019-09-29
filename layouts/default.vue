@@ -1,6 +1,5 @@
 <template>
   <div class="wrapper">
-    <SkyMap />
     <div class="container">
       <div class="row">
         <div class="content">
@@ -14,12 +13,10 @@
 
 <script>
 import LineMenu from '~/components/LineMenu.vue'
-import SkyMap from '~/components/SkyMap.vue'
 
 export default {
   components: {
-    LineMenu,
-    SkyMap
+    LineMenu
   }
 }
 </script>
@@ -39,11 +36,13 @@ export default {
   box-sizing: border-box;
   color: white;
   font: 400 1em/ 1.25 Roboto, sans-serif;
-  box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+
+  background: #272727;
+  background: radial-gradient(circle, #404040 0%, #212121 52%);
 }
 
 .row {

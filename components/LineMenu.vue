@@ -44,7 +44,7 @@ export default {
       if (href.match(/http(s)?|mailto/)) {
         return {
           is: 'a',
-          href: href,
+          href,
           target: '_blank',
           rel: 'noopener'
         }
