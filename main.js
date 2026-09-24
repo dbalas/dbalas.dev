@@ -39,21 +39,45 @@ function measure(w, h) {
   if (layoutCache && layoutCache.w === w && layoutCache.h === h) return layoutCache;
   const narrow = w < 720;
   const badgeHalf = Math.max(...orbiters.map((badge) => badge.offsetWidth), 72) / 2 + (narrow ? 8 : 12);
-  let scale = 1;
   let R = 120;
   let orbit = 180;
-  for (let pass = 0; pass < 10; pass += 1) {
-    const block = (narrow ? Math.min(230, w * 0.62) : Math.min(480, w * 0.4)) * scale;
-    core.style.width = block + "px";
-    heading.style.fontSize = (narrow ? 24 : 50) * scale + "px";
-    bio.style.fontSize = (narrow ? 13 : 17.5) * scale + "px";
+  if (narrow) {
+    const orbitMult = 1.24;
+    const textPad = 20;
+    const rCap = (Math.min(w, h) / 2 - badgeHalf) / orbitMult;
+    core.style.width = Math.min(258, w * 0.72) + "px";
+    let hPx = 31;
+    let pPx = 16;
+    heading.style.fontSize = hPx + "px";
+    bio.style.fontSize = pPx + "px";
+    for (let step = 0; step < 24; step += 1) {
+      const box = core.getBoundingClientRect();
+      const nextR = Math.hypot(box.width, box.height) / 2 + textPad;
+      if (nextR >= rCap * 0.985) break;
+      hPx *= 1.04;
+      pPx *= 1.04;
+      heading.style.fontSize = hPx + "px";
+      bio.style.fontSize = pPx + "px";
+    }
     const box = core.getBoundingClientRect();
-    const pad = (narrow ? 34 : 52) * Math.max(scale, 0.7);
-    R = Math.hypot(box.width, box.height) / 2 + pad;
-    orbit = R * (narrow ? 1.28 : 1.46);
-    const limit = Math.min(w, h) / 2 - badgeHalf;
-    if (orbit <= limit && R <= Math.min(w, h) * 0.44) break;
-    scale *= 0.88;
+    R = Math.hypot(box.width, box.height) / 2 + textPad;
+    orbit = R * orbitMult;
+  } else {
+    let scale = 1;
+    const textPad = 52;
+    for (let pass = 0; pass < 10; pass += 1) {
+      const block = Math.min(480, w * 0.4) * scale;
+      core.style.width = block + "px";
+      heading.style.fontSize = 50 * scale + "px";
+      bio.style.fontSize = 17.5 * scale + "px";
+      const box = core.getBoundingClientRect();
+      const pad = textPad * Math.max(scale, 0.7);
+      R = Math.hypot(box.width, box.height) / 2 + pad;
+      orbit = R * 1.46;
+      const limit = Math.min(w, h) / 2 - badgeHalf;
+      if (orbit <= limit && R <= Math.min(w, h) * 0.44) break;
+      scale *= 0.88;
+    }
   }
   const gap = narrow ? 10 : 16;
   const widths = badges.map((badge) => badge.offsetWidth);
@@ -386,9 +410,10 @@ function starField(w, h, R) {
     };
   });
   const rings = [];
+  const ringGap = Math.max((R * 2.15) / 56, 10);
   for (let i = 0; i < 56; i += 1) {
     const t = i / 56;
-    const rad = R * (1.06 + t * 2.15);
+    const rad = R * 1.06 + i * ringGap;
     const alpha = (1 - t) ** 1.6 * 0.55;
     const path = new Path2D();
     const segs = 4 + (i % 5);
