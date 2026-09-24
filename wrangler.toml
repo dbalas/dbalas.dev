@@ -1,6 +1,7 @@
 name = "dbalas-dev"
 main = "worker.js"
 compatibility_date = "2026-09-01"
+account_id = "e4a09867c623e2666d4d6a9a919afe5f"
 workers_dev = true
 
 [assets]

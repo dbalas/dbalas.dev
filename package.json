@@ -1,7 +1,12 @@
 {
   "name": "dbalas.dev",
   "private": true,
+  "packageManager": "npm@11.6.0",
   "scripts": {
-    "build": "node -e \"process.exit(0)\""
+    "build": "node -e \"process.exit(0)\"",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.137.0"
   }
 }
