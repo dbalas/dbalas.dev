@@ -38,13 +38,15 @@ let layoutCache = null;
 function measure(w, h) {
   if (layoutCache && layoutCache.w === w && layoutCache.h === h) return layoutCache;
   const narrow = w < 720;
-  const badgeHalf = Math.max(...orbiters.map((badge) => badge.offsetWidth), 72) / 2 + (narrow ? 8 : 12);
+  const badgeHalf = Math.max(...orbiters.map((badge) => badge.offsetWidth), 72) / 2 + 12;
   let R = 120;
   let orbit = 180;
   if (narrow) {
-    const orbitMult = 1.24;
-    const textPad = 20;
-    const rCap = (Math.min(w, h) / 2 - badgeHalf) / orbitMult;
+    const orbitMult = 1.2;
+    const textPad = 16;
+    const edgePad = 10;
+    const maxOrbit = Math.min(w, h) / 2 - badgeHalf - edgePad;
+    const rCap = maxOrbit / orbitMult;
     core.style.width = Math.min(258, w * 0.72) + "px";
     let hPx = 31;
     let pPx = 16;
@@ -53,15 +55,25 @@ function measure(w, h) {
     for (let step = 0; step < 24; step += 1) {
       const box = core.getBoundingClientRect();
       const nextR = Math.hypot(box.width, box.height) / 2 + textPad;
-      if (nextR >= rCap * 0.985) break;
+      if (nextR >= rCap * 0.86) break;
       hPx *= 1.04;
       pPx *= 1.04;
       heading.style.fontSize = hPx + "px";
       bio.style.fontSize = pPx + "px";
     }
     const box = core.getBoundingClientRect();
-    R = Math.hypot(box.width, box.height) / 2 + textPad;
-    orbit = R * orbitMult;
+    let textR = Math.hypot(box.width, box.height) / 2 + textPad;
+    R = Math.min(textR, rCap);
+    orbit = Math.min(R * orbitMult, maxOrbit);
+    R = orbit / orbitMult;
+    for (let step = 0; step < 16 && textR > R + 2; step += 1) {
+      hPx *= 0.96;
+      pPx *= 0.96;
+      heading.style.fontSize = hPx + "px";
+      bio.style.fontSize = pPx + "px";
+      const shrunk = core.getBoundingClientRect();
+      textR = Math.hypot(shrunk.width, shrunk.height) / 2 + textPad;
+    }
   } else {
     let scale = 1;
     const textPad = 52;
