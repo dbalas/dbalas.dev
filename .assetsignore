@@ -1,5 +1,7 @@
 .git
 .github
+.wrangler
+.gitignore
 README.md
 wrangler.toml
 package.json

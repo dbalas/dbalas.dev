@@ -74,11 +74,11 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 28px;
-  padding: 6px;
+  gap: 7px;
+  height: 32px;
+  padding: 7px;
   border-radius: 999px;
-  font: 500 12px/1 Sora, sans-serif;
+  font: 500 13px/1 Sora, sans-serif;
   letter-spacing: -0.01em;
   text-decoration: none;
   backdrop-filter: blur(14px);
@@ -91,15 +91,15 @@ p {
 .badge .label,
 .mark .label {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   flex: none;
 }
 
 .badge .label,
 .mark .label {
   width: auto;
-  line-height: 14px;
+  line-height: 16px;
 }
 
 .badge {

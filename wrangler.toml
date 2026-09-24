@@ -1,7 +1,16 @@
 name = "dbalas-dev"
 main = "worker.js"
 compatibility_date = "2026-09-01"
+workers_dev = true
 
 [assets]
 directory = "./"
 binding = "ASSETS"
+
+[[routes]]
+pattern = "dbalas.dev"
+custom_domain = true
+
+[[routes]]
+pattern = "www.dbalas.dev"
+custom_domain = true
