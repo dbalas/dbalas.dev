@@ -1,0 +1,180 @@
+@font-face {
+  font-family: Sora;
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/sora-latin.woff2") format("woff2");
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #07040c;
+  color: #f4f1ff;
+  font-family: Sora, sans-serif;
+}
+
+body {
+  overflow: hidden;
+}
+
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.core {
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.35rem, 4.6vw, 3.15rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+p {
+  margin-top: 0.7rem;
+  max-width: 28em;
+  color: rgba(236, 230, 255, 0.78);
+  font-size: clamp(0.84rem, 2.1vw, 1.05rem);
+  font-weight: 400;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+.badge,
+.mark {
+  position: fixed;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 6px;
+  border-radius: 999px;
+  font: 500 12px/1 Sora, sans-serif;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transform: translate(-50%, -50%);
+}
+
+.badge svg,
+.mark svg,
+.badge .label,
+.mark .label {
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.badge .label,
+.mark .label {
+  width: auto;
+  line-height: 14px;
+}
+
+.badge {
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 10px 28px rgba(0, 0, 0, 0.28);
+  color: #f7f4ff;
+}
+
+.badge:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.mark {
+  border: 1px solid rgba(168, 173, 221, 0.55);
+  background: rgba(27, 30, 72, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(197, 201, 234, 0.35),
+    0 10px 28px rgba(0, 0, 0, 0.28);
+  color: #f2f2f5;
+}
+
+.mark-read {
+  color: #a8addd;
+}
+
+.mark:hover {
+  background: rgba(47, 51, 115, 0.78);
+  border-color: rgba(197, 201, 234, 0.8);
+}
+
+.badge:focus-visible,
+.mark:focus-visible,
+.spin:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.spin {
+  position: fixed;
+  z-index: 4;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(8, 6, 14, 0.4);
+  color: rgba(244, 241, 255, 0.72);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.spin:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.spin svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.45s ease;
+}
+
+@media (max-width: 720px) {
+  p {
+    margin-top: 0.45rem;
+  }
+}

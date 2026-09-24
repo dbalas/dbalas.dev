@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ secrets.S3_BUCKET != '' && secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Stamp hashed assets
+        run: |
+          set -euo pipefail
+          mkdir -p dist/fonts
+          font=$(sha256sum fonts/sora-latin.woff2 | cut -c1-10)
+          cp fonts/sora-latin.woff2 "dist/fonts/sora.$font.woff2"
+          sed "s|/fonts/sora-latin.woff2|/fonts/sora.$font.woff2|" styles.css > dist/styles.css
+          css=$(sha256sum dist/styles.css | cut -c1-10)
+          mv dist/styles.css "dist/styles.$css.css"
+          js=$(sha256sum main.js | cut -c1-10)
+          cp main.js "dist/main.$js.js"
+          sed \
+            -e "s|/styles.css|/styles.$css.css|" \
+            -e "s|/main.js|/main.$js.js|" \
+            -e "s|/fonts/sora-latin.woff2|/fonts/sora.$font.woff2|" \
+            index.html > dist/index.html
+
+      - name: Publish
+        env:
+          BUCKET: ${{ secrets.S3_BUCKET }}
+          DISTRIBUTION: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          aws s3 sync dist "s3://$BUCKET" --delete \
+            --exclude "index.html" \
+            --cache-control "public,max-age=31536000,immutable"
+          aws s3 cp dist/index.html "s3://$BUCKET/index.html" \
+            --cache-control "public,max-age=0,must-revalidate" \
+            --content-type "text/html; charset=utf-8"
+          aws s3 sync dist/fonts "s3://$BUCKET/fonts" \
+            --cache-control "public,max-age=31536000,immutable" \
+            --content-type "font/woff2"
+          aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION" \
+            --paths "/index.html"
