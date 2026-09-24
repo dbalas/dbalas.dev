@@ -1,0 +1,6 @@
+.git
+.github
+README.md
+wrangler.toml
+package.json
+.assetsignore
