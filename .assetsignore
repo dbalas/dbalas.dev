@@ -3,4 +3,5 @@
 README.md
 wrangler.toml
 package.json
+worker.js
 .assetsignore
