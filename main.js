@@ -5,7 +5,9 @@ const bio = document.querySelector("p");
 const badges = [...document.querySelectorAll(".badge")];
 const mark = document.querySelector(".mark");
 const orbiters = [...badges, mark];
-const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ctx = canvas.getContext("2d", { alpha: false });
+const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+let reduced = motionQuery.matches;
 const stars = Array.from({ length: 460 }, () => ({
   a: Math.random() * Math.PI * 2,
   rf: Math.random() ** 0.72,
@@ -14,8 +16,12 @@ const stars = Array.from({ length: 460 }, () => ({
   violet: Math.random() < 0.22,
 }));
 
+function pixelRatio() {
+  return Math.min(2, window.devicePixelRatio || 1);
+}
+
 function fit() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = pixelRatio();
   const w = window.innerWidth;
   const h = window.innerHeight;
   const pw = Math.floor(w * dpr);
@@ -24,9 +30,7 @@ function fit() {
     canvas.width = pw;
     canvas.height = ph;
   }
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return { ctx, w, h };
+  return { dpr, w, h };
 }
 
 let layoutCache = null;
@@ -51,7 +55,24 @@ function measure(w, h) {
     if (orbit <= limit && R <= Math.min(w, h) * 0.44) break;
     scale *= 0.88;
   }
-  layoutCache = { R, orbit, cx: w / 2, cy: h / 2, w, h };
+  const gap = narrow ? 10 : 16;
+  const widths = badges.map((badge) => badge.offsetWidth);
+  const offsets = [0];
+  for (let i = 1; i < widths.length; i += 1) {
+    const need = (widths[i - 1] + widths[i]) / 2 + gap;
+    offsets.push(offsets[i - 1] + 2 * Math.asin(Math.min(0.98, need / (2 * orbit))));
+  }
+  layoutCache = {
+    R,
+    orbit,
+    cx: w / 2,
+    cy: h / 2,
+    w,
+    h,
+    offsets,
+    mid: offsets[offsets.length - 1] / 2,
+    speed: diskSpeed(R, orbit) * 0.8,
+  };
   return layoutCache;
 }
 
@@ -271,128 +292,208 @@ spin.addEventListener("click", () => {
   applyTone((palettes.indexOf(tone) + 1) % palettes.length);
 });
 
-function paint(ctx, w, h, cx, cy, R, now) {
-  ctx.fillStyle = tone.sky;
-  ctx.fillRect(0, 0, w, h);
+const layers = { key: "", back: { alpha: false }, wash: { alpha: true }, front: { alpha: true } };
+let field = null;
+let fieldKey = "";
 
+function layerContext(slot, dpr, w, h) {
+  if (!slot.canvas) slot.canvas = document.createElement("canvas");
+  const pw = Math.floor(w * dpr);
+  const ph = Math.floor(h * dpr);
+  if (slot.canvas.width !== pw || slot.canvas.height !== ph) {
+    slot.canvas.width = pw;
+    slot.canvas.height = ph;
+    slot.ctx = null;
+  }
+  if (!slot.ctx) slot.ctx = slot.canvas.getContext("2d", { alpha: slot.alpha });
+  return slot.ctx;
+}
+
+function ensureLayers(dpr, w, h, cx, cy, R) {
+  const key = `${tone.id}|${dpr}|${w}|${h}|${R}`;
+  if (layers.key === key) return layers;
   const reach = Math.hypot(w, h) * 0.62;
-  ctx.save();
-  ctx.translate(cx, cy);
 
-  const nebula = ctx.createRadialGradient(-R * 1.3, -R * 0.15, R * 0.2, 0, 0, reach);
+  const back = layerContext(layers.back, dpr, w, h);
+  back.setTransform(dpr, 0, 0, dpr, 0, 0);
+  back.fillStyle = tone.sky;
+  back.fillRect(0, 0, w, h);
+  back.translate(cx, cy);
+  const nebula = back.createRadialGradient(-R * 1.3, -R * 0.15, R * 0.2, 0, 0, reach);
   nebula.addColorStop(0, rgba(tone.nebula[0], 0.3));
   nebula.addColorStop(0.5, rgba(tone.nebula[1], 0.12));
   nebula.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = nebula;
-  ctx.fillRect(-w, -h, w * 2, h * 2);
+  back.fillStyle = nebula;
+  back.fillRect(-w, -h, w * 2, h * 2);
 
-  stars.forEach((star) => {
-    const rad = Math.max(R * 1.2, star.rf * reach);
-    const speed = reduced ? 0 : (0.000054 * (R * 3.2)) / rad;
-    const a = star.a + now * speed;
-    const x = Math.cos(a) * rad;
-    const y = Math.sin(a) * rad;
-    const color = star.violet ? rgba(tone.star, star.b) : rgba("255, 252, 248", star.b);
-    const streak = rad < R * 2.8 ? 5 * (1 - rad / (R * 2.8)) : 0;
-    if (streak > 1.2) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x - Math.sin(a) * (star.s + streak), y + Math.cos(a) * (star.s + streak));
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, star.s * 0.55, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
+  const wash = layerContext(layers.wash, dpr, w, h);
+  wash.setTransform(dpr, 0, 0, dpr, cx * dpr, cy * dpr);
+  wash.clearRect(-w, -h, w * 2, h * 2);
+  const washPaint = wash.createRadialGradient(0, 0, R * 0.96, 0, 0, R * 3.1);
+  washPaint.addColorStop(0, "rgba(0,0,0,0)");
+  washPaint.addColorStop(0.34, rgba(tone.wash[0], 0.22));
+  washPaint.addColorStop(0.55, rgba(tone.wash[1], 0.14));
+  washPaint.addColorStop(1, "rgba(0,0,0,0)");
+  wash.fillStyle = washPaint;
+  wash.beginPath();
+  wash.arc(0, 0, R * 3.1, 0, Math.PI * 2);
+  wash.fill();
 
-  const wash = ctx.createRadialGradient(0, 0, R * 0.96, 0, 0, R * 3.1);
-  wash.addColorStop(0, "rgba(0,0,0,0)");
-  wash.addColorStop(0.34, rgba(tone.wash[0], 0.22));
-  wash.addColorStop(0.55, rgba(tone.wash[1], 0.14));
-  wash.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = wash;
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 3.1, 0, Math.PI * 2);
-  ctx.fill();
-
-  for (let i = 0; i < 56; i += 1) {
-    const t = i / 56;
-    const rad = R * (1.06 + t * 2.15);
-    const rot = reduced ? i * 0.37 : now * diskSpeed(R, rad) + i * 0.37;
-    ctx.save();
-    ctx.rotate(rot);
-    const alpha = (1 - t) ** 1.6 * 0.55;
-    ctx.strokeStyle =
-      t < 0.1 ? rgba(tone.inner, 0.45 + alpha) : t < 0.32 ? rgba(tone.mid, alpha) : rgba(tone.outer, alpha * 0.75);
-    ctx.lineWidth = t < 0.12 ? 1.7 : 1.1;
-    const segs = 4 + (i % 5);
-    for (let s = 0; s < segs; s += 1) {
-      const a0 = (s / segs) * Math.PI * 2 + ((i * 13) % 7) * 0.08;
-      const len = 0.28 + ((i * 5 + s * 3) % 8) * 0.06;
-      ctx.beginPath();
-      ctx.arc(0, 0, rad, a0, a0 + len);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  const rim = ctx.createRadialGradient(0, 0, R * 0.96, 0, 0, R * 1.22);
+  const front = layerContext(layers.front, dpr, w, h);
+  front.setTransform(dpr, 0, 0, dpr, cx * dpr, cy * dpr);
+  front.clearRect(-w, -h, w * 2, h * 2);
+  const rim = front.createRadialGradient(0, 0, R * 0.96, 0, 0, R * 1.22);
   rim.addColorStop(0, "rgba(255,255,255,0)");
   rim.addColorStop(0.12, rgba(tone.inner, 0.96));
   rim.addColorStop(0.34, rgba(tone.rim, 0.5));
   rim.addColorStop(1, rgba(tone.fade, 0));
-  ctx.fillStyle = rim;
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 1.22, 0, Math.PI * 2);
-  ctx.fill();
+  front.fillStyle = rim;
+  front.beginPath();
+  front.arc(0, 0, R * 1.22, 0, Math.PI * 2);
+  front.fill();
+  front.shadowColor = rgba(tone.inner, 0.9);
+  front.shadowBlur = Math.max(18, R * 0.1);
+  front.strokeStyle = rgba(tone.inner, 0.95);
+  front.lineWidth = Math.max(4, R * 0.045);
+  front.beginPath();
+  front.arc(0, 0, R * 1.01, 0, Math.PI * 2);
+  front.stroke();
+  front.shadowBlur = 0;
+  front.fillStyle = "#000";
+  front.beginPath();
+  front.arc(0, 0, R, 0, Math.PI * 2);
+  front.fill();
 
-  ctx.shadowColor = rgba(tone.inner, 0.9);
-  ctx.shadowBlur = Math.max(18, R * 0.1);
-  ctx.strokeStyle = rgba(tone.inner, 0.95);
-  ctx.lineWidth = Math.max(4, R * 0.045);
-  ctx.beginPath();
-  ctx.arc(0, 0, R * 1.01, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  ctx.fillStyle = "#000";
-  ctx.beginPath();
-  ctx.arc(0, 0, R, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+  layers.key = key;
+  return layers;
 }
+
+function starField(w, h, R) {
+  const key = `${tone.id}|${w}|${h}|${R}`;
+  if (field && fieldKey === key) return field;
+  const reach = Math.hypot(w, h) * 0.62;
+  const baked = stars.map((star) => {
+    const rad = Math.max(R * 1.2, star.rf * reach);
+    const streak = rad < R * 2.8 ? 5 * (1 - rad / (R * 2.8)) : 0;
+    return {
+      a: star.a,
+      s: star.s,
+      rad,
+      speed: (0.000054 * (R * 3.2)) / rad,
+      color: rgba(star.violet ? tone.star : "255, 252, 248", star.b),
+      streak: streak > 1.2 ? streak : 0,
+      r: star.s * 0.55,
+    };
+  });
+  const rings = [];
+  for (let i = 0; i < 56; i += 1) {
+    const t = i / 56;
+    const rad = R * (1.06 + t * 2.15);
+    const alpha = (1 - t) ** 1.6 * 0.55;
+    const path = new Path2D();
+    const segs = 4 + (i % 5);
+    for (let s = 0; s < segs; s += 1) {
+      const a0 = (s / segs) * Math.PI * 2 + ((i * 13) % 7) * 0.08;
+      const len = 0.28 + ((i * 5 + s * 3) % 8) * 0.06;
+      path.moveTo(Math.cos(a0) * rad, Math.sin(a0) * rad);
+      path.arc(0, 0, rad, a0, a0 + len);
+    }
+    rings.push({
+      path,
+      color: t < 0.1 ? rgba(tone.inner, 0.45 + alpha) : t < 0.32 ? rgba(tone.mid, alpha) : rgba(tone.outer, alpha * 0.75),
+      lineWidth: t < 0.12 ? 1.7 : 1.1,
+      speed: 0.00013 / (0.45 + t * 2.6),
+      rot0: i * 0.37,
+    });
+  }
+  field = { baked, rings };
+  fieldKey = key;
+  return field;
+}
+
+function place(el, x, y, cx, cy) {
+  el.style.transform = `translate3d(${x - cx}px, ${y - cy}px, 0) translate(-50%, -50%)`;
+}
+
+let looping = false;
 
 function frame(now) {
-  const { ctx, w, h } = fit();
-  const { R, orbit, cx, cy } = measure(w, h);
-  const clock = reduced ? 0 : now;
-  paint(ctx, w, h, cx, cy, R, clock);
-  const speed = diskSpeed(R, orbit) * 0.8;
-  const center = clock * speed - Math.PI / 2;
-  const gap = w < 720 ? 10 : 16;
-  const widths = badges.map((badge) => badge.offsetWidth);
-  const offsets = [0];
-  for (let i = 1; i < widths.length; i += 1) {
-    const need = (widths[i - 1] + widths[i]) / 2 + gap;
-    offsets.push(offsets[i - 1] + 2 * Math.asin(Math.min(0.98, need / (2 * orbit))));
+  if (document.hidden) {
+    looping = false;
+    return;
   }
-  const mid = offsets[offsets.length - 1] / 2;
-  badges.forEach((badge, i) => {
+  const { dpr, w, h } = fit();
+  const { R, orbit, cx, cy, offsets, mid, speed } = measure(w, h);
+  const clock = reduced ? 0 : now;
+  const { back, wash, front } = ensureLayers(dpr, w, h, cx, cy, R);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.drawImage(back.canvas, 0, 0, w, h);
+  ctx.setTransform(dpr, 0, 0, dpr, cx * dpr, cy * dpr);
+  const { baked, rings } = starField(w, h, R);
+  for (let i = 0; i < baked.length; i += 1) {
+    const star = baked[i];
+    const a = star.a + clock * star.speed;
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    const x = cos * star.rad;
+    const y = sin * star.rad;
+    if (star.streak) {
+      ctx.strokeStyle = star.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - sin * (star.s + star.streak), y + cos * (star.s + star.streak));
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = star.color;
+      ctx.beginPath();
+      ctx.arc(x, y, star.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.drawImage(wash.canvas, 0, 0, w, h);
+  for (let i = 0; i < rings.length; i += 1) {
+    const ring = rings[i];
+    const rot = clock * ring.speed + ring.rot0;
+    const cos = Math.cos(rot);
+    const sin = Math.sin(rot);
+    ctx.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, cx * dpr, cy * dpr);
+    ctx.strokeStyle = ring.color;
+    ctx.lineWidth = ring.lineWidth;
+    ctx.stroke(ring.path);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.drawImage(front.canvas, 0, 0, w, h);
+  const center = clock * speed - Math.PI / 2;
+  for (let i = 0; i < badges.length; i += 1) {
     const ang = center + offsets[i] - mid;
-    badge.style.left = cx + Math.cos(ang) * orbit + "px";
-    badge.style.top = cy + Math.sin(ang) * orbit + "px";
-  });
+    place(badges[i], cx + Math.cos(ang) * orbit, cy + Math.sin(ang) * orbit, cx, cy);
+  }
   const markAng = center + Math.PI;
-  mark.style.left = cx + Math.cos(markAng) * orbit + "px";
-  mark.style.top = cy + Math.sin(markAng) * orbit + "px";
-  if (!reduced) requestAnimationFrame(frame);
+  place(mark, cx + Math.cos(markAng) * orbit, cy + Math.sin(markAng) * orbit, cx, cy);
+  if (reduced) {
+    looping = false;
+    return;
+  }
+  requestAnimationFrame(frame);
 }
 
-document.fonts.ready.then(() => requestAnimationFrame(frame));
+function kick() {
+  if (looping) return;
+  looping = true;
+  requestAnimationFrame(frame);
+}
+
+document.fonts.ready.then(kick);
+motionQuery.addEventListener("change", (event) => {
+  reduced = event.matches;
+  kick();
+});
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) kick();
+});
 window.addEventListener("resize", () => {
-  if (reduced) requestAnimationFrame(frame);
+  layoutCache = null;
+  if (reduced) kick();
 });
