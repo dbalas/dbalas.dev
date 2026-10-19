@@ -473,157 +473,9 @@ function place(el, x, y, cx, cy) {
 }
 
 const ART = 96;
-const ART_CY = 12;
-const SUB = 3;
+const SUB = 2;
 const PX = 2;
-const TURNS = 32;
-
-function pset(g, x, y, v) {
-  x |= 0;
-  y |= 0;
-  if (!v || x < 0 || y < 0 || x >= ART || y >= ART) return;
-  g[y * ART + x] = v;
-}
-
-function shipPx(g, x, y, v) {
-  const X = Math.round(x * SUB);
-  const Y = Math.round(y * SUB);
-  for (let dy = 0; dy < SUB; dy += 1) {
-    for (let dx = 0; dx < SUB; dx += 1) {
-      let c = v;
-      if (v === 6) c = dx === SUB - 1 && dy === 0 ? 13 : 5;
-      else if (v === 8) c = dx === 0 ? 13 : 8;
-      else if (v === 5 && dx === SUB - 1 && dy === 0) c = 6;
-      else if (v === 1) {
-        if (dy === 0) c = 3;
-        else if (dy === SUB - 1) c = 16;
-        else if ((dx + dy) & 1) c = 10;
-      }
-      pset(g, X + dx, Y + dy, c);
-    }
-  }
-}
-
-function shipCol(g, x, half, body, trimWing) {
-  const X = Math.round(x * SUB);
-  const h = Math.max(1, Math.round(Math.min(8, half) * SUB));
-  const b = Math.round(Math.min(Math.min(8, half), body) * SUB);
-  const cy = ART_CY * SUB;
-  for (let dy = -h; dy <= h; dy += 1) {
-    const ady = Math.abs(dy);
-    const wing = ady > b;
-    let v = wing && trimWing ? 4 : 1;
-    if (dy <= -h + 1) v = 3;
-    else if (dy >= h - 1) v = 16;
-    else if (!wing && dy < 0 && ady >= b - 1) v = 14;
-    else if (!wing && dy === 0) v = 11;
-    else if (!wing && dy < 0) v = (X + dy) & 1 ? 14 : 1;
-    else if (v === 1 && dy > 0) v = (X + dy) & 1 ? 15 : 10;
-    else if (wing && trimWing && dy > 0 && ((X + dy) & 1)) v = 12;
-    pset(g, X, cy + dy, v);
-  }
-}
-
-function layShip(g, profile, body, trimWing, x0 = 3) {
-  for (let i = 0; i < profile.length; i += 1) {
-    if (!profile[i]) continue;
-    const b = Array.isArray(body) ? body[i] : body;
-    const next = i + 1 < profile.length && profile[i + 1] ? profile[i + 1] : profile[i];
-    for (let s = 0; s < SUB; s += 1) {
-      const t = s / SUB;
-      const half = profile[i] + (next - profile[i]) * t;
-      if (half < 0.35) continue;
-      shipCol(g, x0 + i + t, half, b, trimWing);
-    }
-  }
-  return x0;
-}
-
-function shipCanopy(g, x, len) {
-  for (let i = 0; i < len; i += 1) {
-    shipPx(g, x + i, ART_CY, i === len - 1 ? 6 : 5);
-    shipPx(g, x + i, ART_CY - 1, 5);
-  }
-  shipPx(g, x + len - 1, ART_CY - 1, 6);
-}
-
-function shipNozzle(g, x, dy) {
-  shipPx(g, x, ART_CY + dy, 7);
-  shipPx(g, x, ART_CY - dy, 7);
-  shipPx(g, x - 1, ART_CY + dy, 8);
-  shipPx(g, x - 2, ART_CY + dy, 8);
-  if (!dy) return;
-  shipPx(g, x - 1, ART_CY - dy, 8);
-  shipPx(g, x - 2, ART_CY - dy, 8);
-}
-
-function shipFin(g, x, hullHalf, h) {
-  for (let i = 1; i <= h; i += 1) shipPx(g, x, ART_CY - hullHalf - i, i === h ? 3 : 1);
-  shipPx(g, x - 1, ART_CY - hullHalf - 1, 1);
-  shipPx(g, x + 1, ART_CY - hullHalf - 1, 2);
-}
-
-function shipBridge(g, x, hullHalf, h) {
-  const top = ART_CY - hullHalf;
-  for (let i = 1; i <= h; i += 1) {
-    shipPx(g, x, top - i, 1);
-    shipPx(g, x + 1, top - i, i === h ? 3 : 1);
-  }
-  shipPx(g, x, top - h, 5);
-  shipPx(g, x + 1, top - h, 6);
-}
-
-function shipLights(g, x, dy, n) {
-  for (let i = 0; i < n; i += 1) {
-    shipPx(g, x + i * 2, ART_CY + dy, 6);
-    if (dy) shipPx(g, x + i * 2, ART_CY - dy, 6);
-  }
-}
-
-function shipStripe(g, x0, x1) {
-  const y = ART_CY * SUB;
-  const xStart = Math.round(x0 * SUB);
-  const xEnd = Math.round(x1 * SUB) + SUB - 1;
-  for (let x = xStart; x <= xEnd; x += 1) {
-    for (let row = 0; row < SUB; row += 1) {
-      const i = (y + row) * ART + x;
-      if (i < 0 || i >= g.length) continue;
-      if (g[i] === 1 || g[i] === 3 || g[i] === 10 || g[i] === 14 || g[i] === 15) g[i] = 4;
-    }
-  }
-}
-
-function shipPanel(g, x) {
-  const X = Math.round(x * SUB);
-  for (let y = 0; y < ART; y += 1) {
-    for (let col = 0; col < SUB; col += 1) {
-      const i = y * ART + X + col;
-      if (g[i] === 1 || g[i] === 15) g[i] = 11;
-    }
-  }
-}
-
-function shipGun(g, x, dy) {
-  shipPx(g, x, ART_CY + dy, 4);
-  shipPx(g, x + 1, ART_CY + dy, 3);
-  if (!dy) return;
-  shipPx(g, x, ART_CY - dy, 4);
-  shipPx(g, x + 1, ART_CY - dy, 3);
-}
-
-function paintGlassBar(g, hx, reach) {
-  const X = Math.round(hx * SUB);
-  for (let dy = -reach + 1; dy <= reach - 1; dy += 1) {
-    const Y = (ART_CY + dy) * SUB;
-    for (let col = 0; col < SUB; col += 1) {
-      for (let row = 0; row < SUB; row += 1) {
-        const i = (Y + row) * ART + X + col;
-        if (i < 0 || i >= g.length) continue;
-        if (g[i] && g[i] !== 7 && g[i] !== 8 && g[i] !== 9 && g[i] !== 13) g[i] = dy === 0 ? 6 : 5;
-      }
-    }
-  }
-}
+const TURNS = 64;
 
 function shipOutline(src) {
   const g = src.slice();
@@ -637,235 +489,301 @@ function shipOutline(src) {
   return g;
 }
 
-function shipDart(g, v) {
-  const profiles = [
-    [1, 1, 1, 2, 2, 6, 5, 3, 2, 1, 1, 1, 1, 1],
-    [1, 1, 2, 3, 7, 6, 4, 2, 1, 1, 1, 1, 1],
-    [1, 2, 5, 6, 4, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 4, 2, 1, 2, 6, 5, 3, 2, 1, 1, 1],
-    [1, 1, 2, 2, 4, 7, 6, 4, 2, 1, 1, 1, 1, 1, 1],
-  ];
-  const x0 = layShip(g, profiles[v], 1, v !== 2);
-  shipCanopy(g, x0 + profiles[v].length - 5, 3);
-  shipNozzle(g, x0 + 1, 0);
-  if (v !== 3) shipNozzle(g, x0 + 2, v === 1 ? 3 : 2);
-  if (v === 4) shipGun(g, x0 + profiles[v].length, 2);
-  if (v === 0) shipStripe(g, x0 + 4, x0 + 8);
+// Top half of each hull, center row last, nose pointing right. Mirrored at build time.
+// h hull, a accent, d dark metal, s panel seam, g canopy, e nozzle, f flame, n nav light, w beacon
+const SHIP_ART = [
+  [
+    "......aa",
+    "......hha",
+    "......hhhh",
+    "......shhhh",
+    "..ee..dhhhhhh",
+    ".eeddddhhhhhhhh",
+    "feeddhhhhhhhhssggg",
+    "feedhhhhhaaaahhhgggghhh",
+    "feedhhhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "n",
+    "ha",
+    "hhha",
+    "shhhhh",
+    "dhhhhhhhh",
+    "ddhhhhhhhhhh",
+    "eddshhhhhhhhhhh",
+    "eddhhhhhaahhhhhhgg",
+    "fedhhhhhhhhhhhhhgggghhh",
+    "fedhhhhhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "..dddddddd",
+    ".eaaaaaaaaad",
+    "fedddddddddd",
+    ".eaaaaaaaaad",
+    "....dhhhd",
+    "....dhhhhhhh",
+    "..eedhhhhhhhhhhh",
+    ".eedshhhhhhhhhhhhgg",
+    "feedhhhhhhaaaahhhgggghh",
+    "feedhhhhhhhhhhhhhhhhhhhhhh",
+  ],
+  [
+    "...dhhhhshhhhshhhhd",
+    "..edaaaasaaaasaaaahhh",
+    "..edhhhhshhhhshhhhhhhh",
+    "..edhhhhshhhhshhhhhhhhgg",
+    "feddhhhhshhhhshhhhhhhhggghh",
+    "feddhhhhshhhhshhhhhhhhhhhhhhw",
+  ],
+  [
+    "an",
+    "hha",
+    "shhh",
+    "dhhhh",
+    "edhhhhh......hh",
+    "edhhhhhhh...hhhd",
+    "eedhhhhhhhhhhhhhhhgg",
+    "feedhhhhhaaaahhhhhggghh",
+    "feedhhhhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "..............an",
+    ".............hha",
+    "............hhh",
+    "...........hhhs",
+    "..........hhhhd",
+    ".........hhhhhd",
+    "..ee....hhhhhhd",
+    ".eeddhhhhhhhhhhhhgg",
+    "feedhhhhaaahhhhhhgggghh",
+    "feedhhhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "an",
+    "hhh",
+    ".hhhh",
+    "..dhhhhh",
+    "eedhhhhhhggg",
+    "fedhhhhhhhggghhh",
+    "fedhhhhhhhhhhhhhhhw",
+  ],
+  [
+    ".........dd",
+    "....eaaaaaad",
+    "....edddddddd",
+    "..........dd......dd",
+    "..eedhhhhhhhhhhhhhhhhhh",
+    ".eeddhhhhhsshhhhhhsshhhhgg",
+    "feeddhhhhhhhhhhhhhhhhhhhggghh",
+    "feeddhhhhhhhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "......hhhhhhh",
+    "....hhhhhhhhhhh",
+    "...hhahhhhhhhahh",
+    "..hhhhhhsssshhhhh",
+    ".ehhhhhsggggshhhhh",
+    "fehhhhsgggggghhhhh",
+    "fehhhhsggggggghhhhw",
+  ],
+  [
+    "dddddddddd",
+    "daaaaaaaad",
+    "dhhhhhhhhd",
+    "dhhhhhhhhd",
+    "dhhhhhhhhd",
+    "dhhhhhhhhd",
+    "....dd",
+    "....dd",
+    "...dhhhd",
+    "..edhhhhhgg",
+    ".edhhhhhhgggh",
+    "fedhhhhhhggggw",
+  ],
+  [
+    "........aa",
+    "......hhhha",
+    ".....hhhhhhh",
+    "....shhhhhhhh",
+    "....dhhhhhhhhhh",
+    "..fedhhhhhhhhhhhh",
+    "..fedhhhhhhaahhhhhgg",
+    "..fedhhhhhhhhhhhhhhggg",
+    "..fedhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "an",
+    "hha",
+    ".hhh",
+    "edhhhhhhhhhhhhhhhhhh",
+    "fedhhhhhhhhhhhhhhhhhhhgg",
+    "fedhhhhhhsshhhhhhhhhhhggghh",
+    "fedhhhhhaaaaahhhhhhhhhhhhhhhw",
+  ],
+  [
+    "..............hhhan",
+    "...........hhhhhhhh",
+    ".........dhhhh",
+    "......edhhhh",
+    "....eedhhhhhhh",
+    "...feeddhhhhhhh",
+    "...feedhhhhaaahhggg",
+    "...feedhhhhhhhhhhhgghh",
+  ],
+  [
+    "....dddddddddddd",
+    "..edhhhhhhhhhhhhhd",
+    "..edhaaaaaaaaaaaahd",
+    "fedhhhhhhhhhhhhhhhhhh",
+    "fedhhhssssssssshhhhhhgg",
+    "fedhhhhhhhhhhhhhhhhhhggghw",
+  ],
+  [
+    "....an",
+    "....hhhhhhhhhd",
+    "....hhhh",
+    ".....hhhh",
+    "......hhhh",
+    "..ee...hhhh",
+    ".eeddhhhhhhhhhhhgg",
+    "feedhhhhhaaaahhhhgggh",
+    "feedhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "......an....aa",
+    "......hh....hh",
+    ".......hh....hh",
+    "........hh....hh",
+    "..e......hh....hh",
+    "feddhhhhhhhhhhhhhhhggh",
+    "fedhhhhhhhhhhhhhhhhhhhhhw",
+  ],
+  [
+    "...............aan",
+    ".............hhhhh",
+    "...........hhhhh",
+    ".........hhhhhh",
+    ".......shhhhhh",
+    ".....edhhhhhh",
+    "....edhhhhhh",
+    "...fedhhhhhhgg",
+    "...fedhhhhhhhggh",
+  ],
+  [
+    ".........aaaaa",
+    ".......aahhhhhaa",
+    ".....aahhhhhhhhhaa",
+    "....ahhhhhhhhhhhhha",
+    "....hhhhhhhhhhhhhhh",
+    "...hhhhhh.....hhhhhh",
+    "...hhhhh.......hhhhh",
+    "fehhhhh.........hhhggg",
+    "fehhhhh.........hhhggg",
+    "fehhhhh.........hhhgggw",
+  ],
+  [
+    "......hhhhhhhhhhhan",
+    "....edhhhhhhhhhhh",
+    "....ddd",
+    "....ddd",
+    "....ddd",
+    "..eeddd",
+    ".feeddhhhhhhhhhhggg",
+    ".feeddhhhhaaahhhhhggghhhhw",
+  ],
+  [
+    "..............aa",
+    "..............hhhh",
+    "............hhgggghh",
+    "...........hhgggggghh",
+    ".........hhgggggggggghh",
+    ".......hhgggggggggggggghh",
+    ".....hhhgaaaaaaaaaaaaaaghhh",
+    "..edhhgggggggggggggggggggghh",
+    "fedhhgggggggggggggggggggggggghhw",
+  ],
+  [
+    "....d...d...d",
+    ".....d...d...d",
+    "......d...d...d",
+    "....hhhhhhhhhhh",
+    "..hhhhaaaaaaahhhh",
+    ".hhhhhhhhhhhhhhhhh",
+    ".hhhhhhhhhhhhhhhhhd..d",
+    "fhhhhhhhhhhhhhhhhhhddd",
+    "fhhhhhhhhhhhhhhhhhhgg",
+    "fssssssssssssshhhhhgggw",
+  ],
+  [
+    ".edhhhhhhhhhhhhhhan",
+    "fedhhhhaaaahhhhhhhhh",
+    ".edhhhhhhhhhhhhhhh",
+    "........dd....dd",
+    "........dd....dd",
+    "........dhhhhhd",
+    "........dhhhhhhgg",
+    "........dhhhhhhhggw",
+  ],
+  [
+    "................ddd",
+    "...............dhhha",
+    "...............dhhhh",
+    "...............dhhhh",
+    "...............dhhhh",
+    "..ee...........dhhhh",
+    ".eeddhhhhhhhhhhdhhhhh",
+    "feedhhhhhhhhhhhhhhhhgg",
+    "feedhhhhsshhhhsshhhhggw",
+  ],
+  [
+    "aa",
+    "hhhh",
+    ".hhhhhh",
+    "..hhhhhhhh",
+    "...hhhhhhhhhh",
+    "..hhhhhhhhhhhhhh",
+    ".hhhhhhhaaahhhhhhh",
+    "..fehhhhhhhhhhhhhhhhh",
+    "...ehhhhhhhhhhhhhhhhhgg",
+    "....hhhhhhhhhhhhhhhhhhggw",
+  ],
+  [
+    "....hhh.....hhh......hhhh",
+    "...hhhhh...hhhhh....hhhhhhh",
+    "..hhaaahh.hhaaahh..hhhhhhhhh",
+    "fehhhhhhhdhhhhhhhddhhhhhhhhhgg",
+    "fehhhhhhhdhhhhhhhddhhhhhhhhhhggw",
+  ],
+  [
+    "d.d...........hhhh",
+    ".d.d.......hhhhhhhhh",
+    "..d.d....hhhhhaaahhhh",
+    "...d.ddddhhhhhhhhhhhhh",
+    "d...dd..dhhhhhhhhhhhhhh",
+    ".dd....ddhhhhhhhhhhhggg",
+    "...dddd.dhhhhhhhhhhhggggw",
+  ],
+];
+
+const RAMPS = { h: [3, 1, 2, 10], a: [14, 4, 12, 4], d: [15, 11, 16, 11] };
+
+function shadeShip(at, x, y, half) {
+  const m = at(x, y);
+  const low = y > half;
+  const ramp = RAMPS[m];
+  if (ramp) {
+    if (at(x, y - 1) !== m) return ramp[0];
+    if (at(x, y + 1) !== m) return ramp[2];
+    return low ? ramp[3] : ramp[1];
+  }
+  if (m === "g") return at(x, y - 1) !== "g" && !low ? 6 : low ? 18 : 5;
+  if (m === "f") return at(x, y - 1) === "f" && at(x, y + 1) === "f" ? 13 : 8;
+  if (m === "e") return 7;
+  if (m === "s") return 16;
+  if (m === "n") return low ? 19 : 17;
+  if (m === "w") return 6;
+  return 0;
 }
-
-function shipFreighter(g, v) {
-  const hull = 3 + (v % 2);
-  const len = 11 + (v % 3);
-  const profile = [];
-  for (let i = 0; i < len; i += 1) {
-    if (i >= len - 1) profile.push(Math.max(1, hull - 2));
-    else if (i >= len - 3) profile.push(hull - 1);
-    else profile.push(hull);
-  }
-  const x0 = layShip(g, profile, hull, false);
-  shipBridge(g, x0 + 2, hull, 2 + (v % 2));
-  shipNozzle(g, x0 + 1, 0);
-  shipNozzle(g, x0 + 1, hull - 1);
-  if (v >= 2) shipNozzle(g, x0 + 2, 2);
-  shipLights(g, x0 + 4, 0, 3);
-  shipPanel(g, x0 + 6);
-  if (v === 4) {
-    for (let i = 0; i < 4; i += 1) {
-      shipPx(g, x0 + 4 + i, ART_CY - hull - 1, i === 0 ? 3 : 4);
-      shipPx(g, x0 + 4 + i, ART_CY + hull + 1, i === 0 ? 2 : 4);
-    }
-  }
-  shipStripe(g, x0 + 3, x0 + len - 4);
-}
-
-function shipSaucer(g, v) {
-  const discs = [
-    [1, 2, 3, 4, 4, 4, 3, 2, 1],
-    [1, 2, 3, 4, 5, 4, 3, 2, 1],
-    [0, 1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 0],
-    [1, 2, 4, 5, 6, 5, 4, 2, 1],
-    [1, 3, 4, 5, 5, 5, 4, 3, 1],
-  ];
-  const profile = discs[v];
-  const x0 = 5;
-  layShip(g, profile, 99, false, x0);
-  for (let i = 0; i < profile.length; i += 1) {
-    const half = profile[i];
-    if (half > 1 && i % 2 === 0) {
-      shipPx(g, x0 + i, ART_CY - half, 6);
-      shipPx(g, x0 + i, ART_CY + half, 4);
-    }
-  }
-  const mid = x0 + ((profile.length / 2) | 0);
-  shipPx(g, mid, ART_CY, 5);
-  shipPx(g, mid + 1, ART_CY, 6);
-  shipPx(g, mid, ART_CY - 1, 5);
-  shipPx(g, mid + 1, ART_CY - 1, 6);
-  if (v % 2 === 0) {
-    shipPx(g, mid, ART_CY - 2, 5);
-    shipPx(g, mid + 1, ART_CY - 2, 3);
-  }
-  shipNozzle(g, x0 + 1, 0);
-  if (v === 3) shipNozzle(g, x0 + 2, 3);
-}
-
-function shipNeedle(g, v) {
-  const len = 13 + (v % 3);
-  const profile = [];
-  for (let i = 0; i < len; i += 1) {
-    if (i === len - 1) profile.push(1);
-    else if (v === 1 && i > 2 && i < 6) profile.push(3);
-    else if (v === 2 && i > len - 7 && i < len - 3) profile.push(3);
-    else if (v === 4 && (i === 4 || i === 5)) profile.push(4);
-    else if (v === 3 && i > 3 && i < 8) profile.push(2);
-    else profile.push(1);
-  }
-  const x0 = layShip(g, profile, 1, v === 4 || v === 2);
-  shipCanopy(g, x0 + len - 4, 2);
-  shipNozzle(g, x0 + 1, 0);
-  if (v === 0 || v === 3) shipNozzle(g, x0 + 2, 0);
-  shipPx(g, x0 + len, ART_CY, 4);
-  shipPx(g, x0 + len + 1, ART_CY, 3);
-  if (v === 1) shipGun(g, x0 + 5, 3);
-}
-
-function shipBomber(g, v) {
-  const profiles = [
-    [2, 3, 3, 4, 6, 5, 4, 3, 3, 2, 2, 1],
-    [2, 3, 4, 4, 5, 7, 6, 4, 3, 2, 2, 1, 1],
-    [1, 2, 3, 5, 6, 5, 3, 3, 2, 2, 1, 1],
-    [2, 3, 3, 3, 4, 6, 6, 4, 3, 2, 2, 2, 1],
-    [2, 2, 3, 5, 4, 3, 3, 5, 6, 4, 2, 2, 1],
-  ];
-  const bodies = [
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],
-    [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1],
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-  ];
-  const x0 = layShip(g, profiles[v], bodies[v], true);
-  shipCanopy(g, x0 + profiles[v].length - 5, 3);
-  shipNozzle(g, x0 + 1, 0);
-  shipNozzle(g, x0 + 1, 2);
-  if (v !== 2) shipStripe(g, x0 + 3, x0 + 7);
-  if (v === 4) shipGun(g, x0 + profiles[v].length, 3);
-}
-
-function shipInterceptor(g, v) {
-  const nacelle = 3 + (v % 3);
-  const len = 12 + (v % 2);
-  const profile = [];
-  const body = [];
-  for (let i = 0; i < len; i += 1) {
-    profile.push(i < 3 ? nacelle : 1);
-    body.push(1);
-  }
-  if (v === 3) {
-    profile[5] = 4;
-    profile[6] = 5;
-    profile[7] = 3;
-  }
-  if (v === 4) {
-    profile[len - 5] = 3;
-    profile[len - 4] = 4;
-    profile[len - 3] = 2;
-  }
-  const x0 = layShip(g, profile, body, v >= 3);
-  shipCanopy(g, x0 + len - 4, 2);
-  shipNozzle(g, x0, 0);
-  shipNozzle(g, x0, nacelle - 1);
-  if (v % 2 === 0) shipNozzle(g, x0 + 1, Math.max(1, nacelle - 2));
-  shipPx(g, x0 + len, ART_CY, 3);
-}
-
-function shipShuttle(g, v) {
-  const profiles = [
-    [1, 2, 2, 3, 3, 3, 3, 2, 2, 1, 1, 1],
-    [1, 2, 3, 3, 4, 4, 3, 2, 2, 1, 1],
-    [2, 2, 3, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1],
-    [1, 2, 2, 3, 4, 4, 4, 3, 2, 1, 1, 1],
-    [1, 1, 2, 3, 3, 4, 3, 3, 2, 2, 1, 1, 1],
-  ];
-  const x0 = layShip(g, profiles[v], 99, false);
-  shipFin(g, x0 + 2, profiles[v][2] || 2, 2 + (v % 3));
-  shipCanopy(g, x0 + profiles[v].length - 5, 3);
-  shipNozzle(g, x0 + 1, 0);
-  if (v >= 2) shipNozzle(g, x0 + 2, 2);
-  if (v === 1 || v === 4) shipStripe(g, x0 + 3, x0 + 7);
-  shipLights(g, x0 + 4, v === 0 ? 2 : 1, 2);
-}
-
-function shipBiplane(g, v) {
-  const profiles = [
-    [1, 1, 4, 5, 2, 1, 1, 5, 6, 3, 1, 1, 1],
-    [1, 2, 5, 6, 3, 1, 1, 1, 4, 5, 2, 1, 1],
-    [1, 1, 1, 3, 5, 4, 1, 1, 3, 6, 5, 2, 1, 1],
-    [1, 3, 5, 4, 2, 1, 4, 6, 5, 2, 1, 1, 1, 1],
-    [1, 1, 5, 6, 2, 1, 1, 2, 6, 5, 2, 1, 1],
-  ];
-  const x0 = layShip(g, profiles[v], 1, true);
-  shipCanopy(g, x0 + profiles[v].length - 4, 2);
-  shipNozzle(g, x0 + 1, 0);
-  shipNozzle(g, x0 + 1, 2);
-  if (v !== 1) shipGun(g, x0 + profiles[v].length, 0);
-}
-
-function shipRing(g, v) {
-  const cx = 12;
-  const r = 5 + (v > 2 ? 1 : 0);
-  const inner = r - 2 - (v === 4 ? 1 : 0);
-  for (let y = -r - 1; y <= r + 1; y += 1) {
-    for (let x = -r - 1; x <= r + 1; x += 1) {
-      const d = Math.hypot(x, y);
-      if (d > r + 0.45 || d < inner - 0.2) continue;
-      let col = 1;
-      if (y < 0 && d > r - 0.9) col = 3;
-      else if (y > 0 && d > r - 0.9) col = 2;
-      else if (d < inner + 0.9) col = 2;
-      shipPx(g, cx + x, ART_CY + y, col);
-    }
-  }
-  shipPx(g, cx + 1, ART_CY, 5);
-  shipPx(g, cx + 2, ART_CY, 6);
-  shipPx(g, cx + 1, ART_CY - 1, 5);
-  shipNozzle(g, cx - r, 0);
-  if (v % 2 === 0) {
-    shipPx(g, cx, ART_CY - r - 1, 4);
-    shipPx(g, cx, ART_CY + r + 1, 4);
-    shipPx(g, cx + 1, ART_CY - r - 1, 6);
-  }
-  if (v === 1 || v === 3) {
-    shipPx(g, cx + r, ART_CY, 4);
-    shipPx(g, cx + r + 1, ART_CY, 3);
-    shipPx(g, cx + r, ART_CY - 1, 1);
-    shipPx(g, cx + r, ART_CY + 1, 2);
-  }
-}
-
-function shipHammer(g, v) {
-  const necks = [
-    [1, 1, 1, 1, 1, 1, 2, 5, 6, 5, 2],
-    [1, 1, 2, 1, 1, 1, 1, 3, 6, 7, 6, 3],
-    [1, 1, 1, 1, 1, 2, 2, 4, 6, 6, 4, 2],
-    [2, 2, 1, 1, 1, 1, 1, 2, 5, 7, 6, 4],
-    [1, 1, 1, 2, 1, 1, 3, 4, 6, 7, 5, 3, 1],
-  ];
-  const profile = necks[v];
-  const x0 = layShip(g, profile, 99, false);
-  const len = profile.length;
-  shipCanopy(g, x0 + len - 5, 3);
-  const hx = x0 + len - 4;
-  const reach = profile[Math.max(0, len - 3)];
-  paintGlassBar(g, hx, reach);
-  shipNozzle(g, x0 + 1, 0);
-  if (v >= 2) shipNozzle(g, x0 + 1, 1);
-  if (v === 0 || v === 3) shipStripe(g, x0 + 2, x0 + 5);
-  if (v === 4) shipGun(g, x0 + len, 2);
-}
-
-
-const shipBuilders = [shipDart, shipFreighter, shipSaucer, shipNeedle, shipBomber, shipInterceptor, shipShuttle, shipBiplane, shipRing, shipHammer];
 
 function packShip(src) {
   const outlined = shipOutline(src);
@@ -910,17 +828,30 @@ function packShip(src) {
   return { idx, w, h, engines: tips, reach: Math.hypot(w, h) * 0.5 };
 }
 
-function buildShape(id) {
+function buildShape(rows) {
+  const half = rows.length - 1;
+  const width = Math.max(...rows.map((r) => r.length));
+  const at = (x, y) => {
+    if (y < 0 || y > half * 2) return ".";
+    return rows[y <= half ? y : half * 2 - y][x] || ".";
+  };
   const g = new Uint8Array(ART * ART);
-  shipBuilders[id % 10](g, (id / 10) | 0);
+  for (let y = 0; y <= half * 2; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const v = shadeShip(at, x, y, half);
+      if (!v) continue;
+      for (let dy = 0; dy < SUB; dy += 1) {
+        for (let dx = 0; dx < SUB; dx += 1) g[(2 + y * SUB + dy) * ART + 2 + x * SUB + dx] = v;
+      }
+    }
+  }
   return packShip(g);
 }
 
-const SHAPES = Array.from({ length: 50 }, (_, id) => buildShape(id));
+const SHAPES = SHIP_ART.map(buildShape);
 
 const UNIT = 40;
-const PARTS = 96;
-const chromeEls = [...orbiters, spin];
+const PARTS = 320;
 
 function hexRgb(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -966,46 +897,42 @@ function rgbCss(c) {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-const HULLS = [
-  "#e23d3d", "#ff6b3d", "#f0a202", "#e2c84a", "#b6e34a", "#3ecf7a", "#1aae9f", "#3ec6e0",
-  "#3d7eff", "#6a5cff", "#b45cff", "#e85cff", "#ff5c93", "#f4f0e6", "#c5ccd6", "#8d97a6",
-  "#d98a4a", "#e7c39a", "#7dffc3", "#9ad1ff", "#ffb3c7", "#ff4d6d", "#c1121f", "#7a1f2b",
-  "#2d6a4f", "#1d3557", "#e9c46a", "#f4a261", "#e76f51", "#2a9d8f", "#1d4e5f", "#8ecae6",
-  "#fb8500", "#e6c229", "#80b918", "#2f9e44", "#00a6c4", "#0077b6", "#7209b7", "#f72585",
-  "#4cc9f0", "#f7f7f2", "#9aa0a6", "#6c584c", "#b08968", "#bc6c25", "#606c38", "#24301c",
-  "#9b2226", "#d8572a",
-];
+const HULL_TONES = ["#c8ced8", "#8f9aab", "#5d6779", "#d6ccb8", "#7d8c83", "#a3b6cc"];
+const ACCENTS = ["#e5484d", "#f76b15", "#ffc53d", "#3dd68c", "#0090ff", "#8e4ec6", "#e93d82", "#00c2d7"];
 
-function paintOf(hex) {
-  const base = hexRgb(hex);
-  const [h, s] = rgbToHsl(base[0], base[1], base[2]);
-  const sat = Math.max(0.42, Math.min(0.78, s));
-  const warm = h > 18 && h < 58;
-  const glassH = warm ? 198 : 198;
+function paintOf(hullHex, accentHex) {
+  const [h, s, l] = rgbToHsl(...hexRgb(hullHex));
+  const [ah, as, al] = rgbToHsl(...hexRgb(accentHex));
+  const sat = Math.min(0.22, s);
+  const lit = (d) => Math.max(0.04, Math.min(0.94, l + d));
   const paint = [];
-  paint[1] = hslToRgb(h, sat, 0.48);
-  paint[2] = hslToRgb(h, sat * 0.85, 0.24);
-  paint[3] = hslToRgb(h, sat * 0.65, 0.72);
-  paint[4] = hslToRgb(h + 150, Math.min(0.85, Math.max(0.4, s)), 0.58);
-  paint[5] = hslToRgb(glassH, 0.62, 0.62);
-  paint[6] = [255, 255, 255];
-  paint[7] = [20, 16, 28];
-  paint[8] = [255, 146, 36];
-  paint[9] = hslToRgb(h, sat * 0.45, 0.08);
-  paint[10] = hslToRgb(h, sat, 0.36);
-  paint[11] = hslToRgb(h, sat * 0.55, 0.3);
-  paint[12] = hslToRgb(h + 150, 0.5, 0.34);
-  paint[13] = [255, 236, 206];
-  paint[14] = hslToRgb(h, sat * 0.75, 0.6);
-  paint[15] = hslToRgb(h, sat * 0.9, 0.34);
-  paint[16] = hslToRgb(h, sat * 0.8, 0.16);
+  paint[1] = hslToRgb(h, sat, lit(0));
+  paint[2] = hslToRgb(h, sat, lit(-0.17));
+  paint[3] = hslToRgb(h, sat * 0.8, lit(0.14));
+  paint[10] = hslToRgb(h, sat, lit(-0.08));
+  paint[4] = hslToRgb(ah, as, al);
+  paint[12] = hslToRgb(ah, as, al - 0.16);
+  paint[14] = hslToRgb(ah, as, Math.min(0.85, al + 0.13));
+  paint[11] = hslToRgb(h, sat * 0.6, 0.24);
+  paint[15] = hslToRgb(h, sat * 0.6, 0.34);
+  paint[16] = hslToRgb(h, sat * 0.6, 0.15);
+  paint[5] = [56, 152, 214];
+  paint[18] = [30, 84, 140];
+  paint[6] = [232, 246, 255];
+  paint[7] = [24, 22, 32];
+  paint[8] = [255, 146, 40];
+  paint[13] = [255, 238, 200];
+  paint[9] = hslToRgb(h, sat * 0.6, 0.07);
+  paint[17] = [255, 72, 72];
+  paint[19] = [72, 255, 140];
   paint.flame = rgbCss(paint[8]);
   paint.glass = rgbCss(paint[6]);
   paint.hot = rgbCss(paint[13]);
+  paint.debris = [paint[3], paint[1], paint[4], paint[11]].map(rgbCss);
   return paint;
 }
 
-const PAINTS = HULLS.map(paintOf);
+const PAINTS = HULL_TONES.flatMap((hull) => ACCENTS.map((accent) => paintOf(hull, accent)));
 
 function mulberry32(a) {
   return function rand() {
@@ -1018,76 +945,95 @@ function mulberry32(a) {
 }
 
 const EX = 48;
-const EX_FRAMES = 6;
-const FIRE = [null, [255, 250, 236], [255, 210, 74], [255, 132, 28], [255, 64, 22], [148, 26, 16]];
+const EX_FRAMES = 8;
+const BOOM_KINDS = 24;
+const FIRE = [null, [255, 250, 236], [255, 214, 92], [255, 142, 38], [232, 70, 30], [140, 36, 34], [96, 84, 104], [60, 52, 72]];
+const BOOM_GROW = [0.3, 0.62, 0.85, 0.97, 1.04, 1.1, 1.14, 1.17];
+const WAVE_R = [0, 10, 15, 19, 21.5, 23];
 
-function boomPlot(g, x, y, v) {
-  if (x < 0 || y < 0 || x >= EX || y >= EX || !v) return;
-  const i = y * EX + x;
-  if (!g[i] || v < g[i]) g[i] = v;
-}
-
+// Lumpy fireball that cools from white to smoke and dissolves through noise holes, plus a broken shockwave ring.
 function makeBoom(seed) {
   const rand = mulberry32(seed * 997 + 13);
-  const spikes = [];
-  const turn = (seed % 12) * 0.05;
-  for (let i = 0; i < 8; i += 1) {
-    spikes.push({
-      a: (i / 8) * Math.PI * 2 + turn + (rand() - 0.5) * 0.4,
-      len: 12 + ((seed + i * 3) % 5) + (i === seed % 8 ? 3 : 0),
-      fat: (i + seed) % 3 !== 0,
-    });
+  const c = EX / 2;
+  const blobs = [{ x: 0, y: 0, r: 1 }];
+  for (let i = 0; i < 6; i += 1) {
+    const a = (i / 6) * Math.PI * 2 + rand() * 0.9;
+    const d = 0.25 + rand() * 0.35;
+    blobs.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, r: 0.45 + rand() * 0.35 });
   }
-  const notch = seed % 8;
+  // Smooth value noise (6px cells) so the fire breaks into clumps instead of speckle.
+  const cell = 6;
+  const span = EX / cell + 2;
+  const lattice = Array.from({ length: span * span }, () => rand());
+  const noise = new Float32Array(EX * EX);
+  for (let y = 0; y < EX; y += 1) {
+    for (let x = 0; x < EX; x += 1) {
+      const gx = x / cell;
+      const gy = y / cell;
+      const ix = gx | 0;
+      const iy = gy | 0;
+      const fx = (gx - ix) * (gx - ix) * (3 - 2 * (gx - ix));
+      const fy = (gy - iy) * (gy - iy) * (3 - 2 * (gy - iy));
+      const top = lattice[iy * span + ix] * (1 - fx) + lattice[iy * span + ix + 1] * fx;
+      const bottom = lattice[(iy + 1) * span + ix] * (1 - fx) + lattice[(iy + 1) * span + ix + 1] * fx;
+      noise[y * EX + x] = (top * (1 - fy) + bottom * fy) * 0.85 + rand() * 0.15;
+    }
+  }
   const frames = [];
-  const cx = 24;
   for (let f = 0; f < EX_FRAMES; f += 1) {
+    const t = f / (EX_FRAMES - 1);
+    const R = 16 * BOOM_GROW[f];
     const g = new Uint8Array(EX * EX);
-    const coreR = [5, 3, 2, 1, 0, 0][f];
-    if (coreR > 1) {
-      for (let y = -coreR; y <= coreR; y += 1) {
-        for (let x = -coreR; x <= coreR; x += 1) {
-          if (x * x + y * y <= coreR * coreR + coreR) boomPlot(g, cx + x, cx + y, f === 0 ? 1 : 2);
+    for (let y = 0; y < EX; y += 1) {
+      for (let x = 0; x < EX; x += 1) {
+        const px = (x - c + 0.5) / R;
+        const py = (y - c + 0.5) / R;
+        let field = 0;
+        for (let k = 0; k < blobs.length; k += 1) {
+          const b = blobs[k];
+          field = Math.max(field, 1 - Math.hypot(px - b.x, py - b.y) / b.r);
         }
+        if (field <= 0) continue;
+        const i = y * EX + x;
+        const n = noise[i];
+        if (n < t * t * 0.85 + (1 - field) * t * 0.5) continue;
+        const heat = field * (1.15 - t * 1.1) + (0.5 - n) * 0.3;
+        if (heat > 0.72) g[i] = 1;
+        else if (heat > 0.5) g[i] = 2;
+        else if (heat > 0.32) g[i] = 3;
+        else if (heat > 0.16) g[i] = 4;
+        else if (heat > 0.04 || t < 0.35) g[i] = 5;
+        else g[i] = n > 0.6 ? 6 : 7;
       }
     }
-    const reach = [0, 8, 13, 17, 19, 21][f];
-    for (let s = 0; s < spikes.length; s += 1) {
-      const sp = spikes[s];
-      const end = Math.min(sp.len, reach);
-      let start = 0;
-      if (f === 3) start = 4;
-      else if (f >= 4) start = Math.min(end, 7 + (f - 4) * 4);
-      for (let r = start; r <= end; r += 1) {
-        if (r <= 0) continue;
-        if (s === notch && r === end - 1 && f > 0) continue;
-        const x = Math.round(cx + Math.cos(sp.a) * r);
-        const y = Math.round(cx + Math.sin(sp.a) * r);
-        const t = r / sp.len;
-        let col = t < 0.22 ? 2 : t < 0.48 ? 3 : t < 0.72 ? 4 : 5;
-        if (r < 4 && f < 3) col = 1;
-        boomPlot(g, x, y, col);
-        if (sp.fat && r > 3 && r < end) boomPlot(g, x + (Math.abs(Math.sin(sp.a)) > 0.45 ? 1 : 0), y + (Math.abs(Math.cos(sp.a)) > 0.45 ? 1 : 0), col);
+    const rr = WAVE_R[f];
+    if (rr) {
+      for (let k = 0; k < 160; k += 1) {
+        const a = (k / 160) * Math.PI * 2;
+        const x = Math.round(c + Math.cos(a) * rr);
+        const y = Math.round(c + Math.sin(a) * rr);
+        if (x < 0 || y < 0 || x >= EX || y >= EX) continue;
+        const i = y * EX + x;
+        if (g[i] || noise[(k * 7) % noise.length] < 0.15 + f * 0.12) continue;
+        g[i] = f < 3 ? 2 : f < 4 ? 3 : 6;
       }
     }
     frames.push(g);
   }
-  return { spikes, frames };
+  return frames;
 }
 
-const BOOMS = [];
 const boomAtlas = document.createElement("canvas");
 boomAtlas.width = EX * EX_FRAMES;
-boomAtlas.height = EX * 50;
+boomAtlas.height = EX * BOOM_KINDS;
 {
   const ictx = boomAtlas.getContext("2d");
   const img = ictx.createImageData(boomAtlas.width, boomAtlas.height);
   const data = img.data;
-  for (let seed = 0; seed < 50; seed += 1) {
-    const spec = makeBoom(seed);
-    BOOMS.push(spec.spikes);
+  for (let seed = 0; seed < BOOM_KINDS; seed += 1) {
+    const frames = makeBoom(seed);
     for (let f = 0; f < EX_FRAMES; f += 1) {
-      const cell = spec.frames[f];
+      const cell = frames[f];
       const ox = f * EX;
       const oy = seed * EX;
       for (let y = 0; y < EX; y += 1) {
@@ -1120,10 +1066,11 @@ const parts = Array.from({ length: PARTS }, () => ({
   vy: 0,
   rgb: "#fff",
   front: 0,
+  size: 1,
 }));
 let partCursor = 0;
 
-function emitPart(x, y, vx, vy, life, rgb, front) {
+function emitPart(x, y, vx, vy, life, rgb, front, size = 1) {
   for (let n = 0; n < PARTS; n += 1) {
     partCursor = (partCursor + 1) % PARTS;
     const p = parts[partCursor];
@@ -1136,6 +1083,7 @@ function emitPart(x, y, vx, vy, life, rgb, front) {
     p.vy = vy;
     p.rgb = rgb;
     p.front = front;
+    p.size = size;
     return;
   }
 }
@@ -1161,7 +1109,7 @@ function drawParts(ctx, front, dpr) {
     if (p.life <= 0 || p.front !== front) continue;
     ctx.globalAlpha = Math.max(0, p.life / p.max);
     ctx.fillStyle = p.rgb;
-    ctx.fillRect(Math.round(p.x / PX) * PX, Math.round(p.y / PX) * PX, PX, PX);
+    ctx.fillRect(Math.round(p.x / PX) * PX, Math.round(p.y / PX) * PX, PX * p.size, PX * p.size);
   }
   ctx.restore();
 }
@@ -1197,45 +1145,25 @@ function fleetWorld(w, h, cx, cy, orbit) {
   return { w, h, cx, cy, margin: 18, exclusion: orbit + 58 };
 }
 
-function ringRadii(ship, world) {
-  const inner = world.exclusion + ship.reach * 0.58;
-  const outer =
-    Math.min(world.cx, world.cy, world.w - world.cx, world.h - world.cy) - world.margin - ship.reach * 0.32;
-  return { inner, outer };
+function sideBox(ship, world) {
+  const pad = world.margin + ship.reach * 0.5;
+  const gap = world.exclusion + ship.reach * 0.5;
+  if (ship.side < 0) return { x0: pad, x1: Math.max(pad, world.cx - gap), y0: pad, y1: world.h - pad };
+  return { x0: Math.min(world.w - pad, world.cx + gap), x1: world.w - pad, y0: pad, y1: world.h - pad };
 }
 
-function fitsRing(ship, world) {
-  const { inner, outer } = ringRadii(ship, world);
-  return outer > inner + 48;
-}
-
-function anchorShip(ship, world) {
-  const { k, n } = sideSlot(ship);
-  const margin = 64;
-  ship.homeY = margin + ((k + 0.5) / n) * Math.max(80, world.h - margin * 2);
-}
-
-function laneHeading(ship, world) {
-  const gutter = world.margin + ship.reach * 0.45;
-  const onLeft = ship.side < 0;
-  const leftMax = world.cx - world.exclusion - 20;
-  const rightMin = world.cx + world.exclusion + 20;
-  const laneX = onLeft ? (gutter + Math.max(gutter + 24, leftMax)) / 2 : (Math.min(world.w - gutter - 24, rightMin) + (world.w - gutter)) / 2;
-  const home = ship.homeY || world.h * 0.5;
-  const band = 52;
-  let vertical = Math.sin(ship.heading) >= 0 ? Math.PI / 2 : -Math.PI / 2;
-  if (ship.y < home - band || ship.y < gutter) vertical = Math.PI / 2;
-  else if (ship.y > home + band || ship.y > world.h - gutter) vertical = -Math.PI / 2;
-  else vertical += ship.wander || 0;
-  const xErr = ship.x - laneX;
-  const crossed = onLeft ? ship.x > world.cx - 40 : ship.x < world.cx + 40;
-  if (crossed || Math.abs(xErr) > 28) {
-    return {
-      angle: mixAng(vertical, xErr > 0 ? Math.PI : 0, crossed ? 0.82 : Math.min(0.62, Math.abs(xErr) / 180)),
-      hot: true,
-    };
+// Next waypoint on the ship's own side, far enough away to make a real leg of flight.
+function pickGoal(ship, world) {
+  const box = sideBox(ship, world);
+  let best = null;
+  for (let n = 0; n < 16; n += 1) {
+    const x = box.x0 + Math.random() * (box.x1 - box.x0);
+    const y = box.y0 + Math.random() * (box.y1 - box.y0);
+    if (!pointInside(world, x, y, ship.reach)) continue;
+    best = { x, y };
+    if (Math.hypot(x - ship.x, y - ship.y) > 160) break;
   }
-  return { angle: vertical, hot: Math.abs(ship.y - home) > band * 0.75 };
+  return best || randomPoint(world, ship.reach);
 }
 
 function mixAng(a, b, t) {
@@ -1246,12 +1174,6 @@ function turnToward(ship, target, dt, rate) {
   const delta = Math.atan2(Math.sin(target - ship.heading), Math.cos(target - ship.heading));
   const max = rate * dt;
   ship.heading += Math.max(-max, Math.min(max, delta));
-}
-
-function chromeBlocks() {
-  const blocks = [];
-  for (let i = 0; i < chromeEls.length; i += 1) blocks.push(chromeEls[i].getBoundingClientRect());
-  return blocks;
 }
 
 function pointInside(world, x, y, reach) {
@@ -1325,7 +1247,8 @@ function blankShip() {
     phase: 0,
     scale: 1,
     reach: UNIT,
-    bandT: 0.5,
+    cruise: 28,
+    goal: null,
     shape: 0,
     color: 0,
     exhaust: 0,
@@ -1337,8 +1260,8 @@ function blankShip() {
 }
 
 function rerollShip(ship, world) {
-  let shape = (Math.random() * 50) | 0;
-  let color = (Math.random() * 50) | 0;
+  let shape = (Math.random() * SHAPES.length) | 0;
+  let color = (Math.random() * PAINTS.length) | 0;
   for (let n = 0; n < 8; n += 1) {
     let clash = false;
     for (let i = 0; i < ships.length; i += 1) {
@@ -1346,29 +1269,17 @@ function rerollShip(ship, world) {
       if (other !== ship && other.alive && other.shape === shape && other.color === color) clash = true;
     }
     if (!clash) break;
-    shape = (Math.random() * 50) | 0;
-    color = (Math.random() * 50) | 0;
+    shape = (Math.random() * SHAPES.length) | 0;
+    color = (Math.random() * PAINTS.length) | 0;
   }
   ship.shape = shape;
   ship.color = color;
   ship.scale = 0.85 + Math.random() * (maxScale(world) - 0.85);
   ship.reach = SHAPES[shape].reach * PX * ship.scale;
-  ship.speed = (18 + Math.random() * 22) / Math.pow(ship.scale, 0.35);
-  ship.wander = (Math.random() - 0.5) * 0.85;
-  ship.bandT = 0.18 + Math.random() * 0.74;
+  ship.cruise = (22 + Math.random() * 26) / Math.pow(ship.scale, 0.35);
+  ship.speed = ship.cruise;
+  ship.goal = null;
   ship.phase = Math.random() * Math.PI * 2;
-}
-
-function sideSlot(ship) {
-  let n = 0;
-  let k = 0;
-  for (let i = 0; i < ships.length; i += 1) {
-    const other = ships[i];
-    if (other.parked || other.side !== ship.side) continue;
-    if (other === ship) k = n;
-    n += 1;
-  }
-  return { k, n: Math.max(1, n) };
 }
 
 let lastEntry = -1e9;
@@ -1394,8 +1305,7 @@ function dropShip(ship, world, now) {
     y = tryY;
     if (!crowded) break;
   }
-  ship.homeY = y;
-  ship.y = y + (Math.random() - 0.5) * 36;
+  ship.y = y;
   const slip = Math.random() * 48;
   ship.x = ship.side < 0 ? -ship.reach - slip : world.w + ship.reach + slip;
   const inward = ship.side < 0 ? 0 : Math.PI;
@@ -1436,108 +1346,34 @@ function ensureFleet(world, now) {
   }
 }
 
-function desiredHeading(ship, world, blocks) {
+function desiredHeading(ship, world) {
   if (ship.entering) return { angle: ship.enterAim, hot: false };
+  if (!ship.goal || Math.hypot(ship.goal.x - ship.x, ship.goal.y - ship.y) < 48) ship.goal = pickGoal(ship, world);
   const dx = ship.x - world.cx;
   const dy = ship.y - world.cy;
   const dist = Math.hypot(dx, dy) || 1;
   const out = Math.atan2(dy, dx);
-  let coast = out + Math.PI / 2 + Math.sin(ship.phase) * 0.08;
-  const { inner, outer } = ringRadii(ship, world);
-  if (dist < inner) return { angle: mixAng(coast, out, 0.84), hot: true };
-  if (ship.side) {
-    const lane = laneHeading(ship, world);
-    let away = null;
-    let nd = Infinity;
-    for (let i = 0; i < ships.length; i += 1) {
-      const other = ships[i];
-      if (!other.alive || other === ship) continue;
-      const d = Math.hypot(ship.x - other.x, ship.y - other.y);
-      if (d < pairGap(ship, other) && d < nd) {
-        nd = d;
-        away = Math.atan2(ship.y - other.y, ship.x - other.x);
-      }
-    }
-    if (away !== null) return { angle: mixAng(lane.angle, away, 0.5), hot: true };
-    return lane;
+  const inner = world.exclusion + ship.reach * 0.58;
+  let angle = Math.atan2(ship.goal.y - ship.y, ship.goal.x - ship.x) + Math.sin(ship.phase * 3) * 0.14;
+  let hot = false;
+  if (dist < inner + 70 && Math.cos(angle - out) < 0.2) {
+    const tangent = Math.cos(out + Math.PI / 2 - angle) > 0 ? out + Math.PI / 2 : out - Math.PI / 2;
+    angle = mixAng(tangent, out, Math.max(0, Math.min(1, (inner - dist) / 40 + 0.25)));
+    hot = dist < inner;
   }
-
-  const pad = world.margin + ship.reach * 0.5;
-  let edge = null;
-  let pen = 0;
-  if (ship.x < pad) {
-    const p = pad - ship.x;
-    if (p > pen) {
-      pen = p;
-      edge = mixAng(-Math.PI / 2, 0, 0.42);
-    }
-  }
-  if (ship.x > world.w - pad) {
-    const p = ship.x - (world.w - pad);
-    if (p > pen) {
-      pen = p;
-      edge = mixAng(Math.PI / 2, Math.PI, 0.42);
-    }
-  }
-  if (ship.y < pad) {
-    const p = pad - ship.y;
-    if (p > pen) {
-      pen = p;
-      edge = mixAng(0, Math.PI / 2, 0.42);
-    }
-  }
-  if (ship.y > world.h - pad) {
-    const p = ship.y - (world.h - pad);
-    if (p > pen) {
-      pen = p;
-      edge = mixAng(Math.PI, -Math.PI / 2, 0.42);
-    }
-  }
-  if (edge !== null) return { angle: mixAng(coast, edge, 0.7), hot: true };
-
-  const bleed = 6 + ship.reach * 0.12;
-  for (let i = 0; i < blocks.length; i += 1) {
-    const b = blocks[i];
-    const left = b.left - bleed;
-    const right = b.right + bleed;
-    const top = b.top - bleed;
-    const bottom = b.bottom + bleed;
-    if (ship.x < left || ship.x > right || ship.y < top || ship.y > bottom) continue;
-    const options = [
-      [ship.x - left, Math.PI],
-      [right - ship.x, 0],
-      [ship.y - top, -Math.PI / 2],
-      [bottom - ship.y, Math.PI / 2],
-    ];
-    let best = options[0];
-    for (let k = 1; k < 4; k += 1) if (options[k][0] < best[0]) best = options[k];
-    return { angle: best[1], hot: true };
-  }
-
   let away = null;
   let nd = Infinity;
   for (let i = 0; i < ships.length; i += 1) {
     const other = ships[i];
     if (!other.alive || other === ship) continue;
-    const ox = ship.x - other.x;
-    const oy = ship.y - other.y;
-    const d = Math.hypot(ox, oy);
+    const d = Math.hypot(ship.x - other.x, ship.y - other.y);
     if (d < pairGap(ship, other) && d < nd) {
       nd = d;
-      away = Math.atan2(oy, ox);
+      away = Math.atan2(ship.y - other.y, ship.x - other.x);
     }
   }
-  if (away !== null) return { angle: mixAng(coast, away, 0.62), hot: true };
-
-  if (outer > inner + 36) {
-    const want = inner + (outer - inner) * ship.bandT;
-    const err = dist - want;
-    if (Math.abs(err) > 20) {
-      const pull = Math.max(-1, Math.min(1, err / 140));
-      coast = mixAng(coast, pull > 0 ? out + Math.PI : out, Math.min(0.4, Math.abs(pull) * 0.4));
-    }
-  }
-  return { angle: coast, hot: false };
+  if (away !== null) return { angle: mixAng(angle, away, 0.55), hot: true };
+  return { angle, hot };
 }
 
 function containShip(ship, world) {
@@ -1563,11 +1399,15 @@ function containShip(ship, world) {
   else if (ship.x > world.w - edge) ship.x = world.w - edge;
 }
 
-function stepShip(ship, dt, world, blocks) {
-  const steer = desiredHeading(ship, world, blocks);
+function stepShip(ship, dt, world) {
+  const steer = desiredHeading(ship, world);
   ship.avoiding = steer.hot;
-  const rate = (steer.hot ? 1.15 : 0.62) / Math.pow(ship.scale, 0.32);
+  const rate = (steer.hot ? 1.5 : 0.9) / Math.pow(ship.scale, 0.32);
+  const bend = Math.abs(Math.atan2(Math.sin(steer.angle - ship.heading), Math.cos(steer.angle - ship.heading)));
   turnToward(ship, steer.angle, dt, rate);
+  // Ease off through tight turns, open the throttle on straights.
+  const target = ship.cruise * (1 - 0.45 * Math.min(1, bend / 1.6)) * (steer.hot ? 1.2 : 1);
+  ship.speed += (target - ship.speed) * Math.min(1, dt * 1.8);
   ship.x += Math.cos(ship.heading) * ship.speed * dt;
   ship.y += Math.sin(ship.heading) * ship.speed * dt;
   ship.phase += dt * 0.22;
@@ -1773,22 +1613,20 @@ function refreshHover() {
 
 function spawnBurst(x, y, ship, now) {
   if (bursts.length > 8) bursts.shift();
-  const kind = (ship.shape * 3 + ship.color) % 50;
   const paint = PAINTS[ship.color];
-  bursts.push({
-    x,
-    y,
-    kind,
-    t: now,
-    scale: Math.min(2.3, ship.scale),
-    hot: paint.glass,
-    edge: paint.flame,
-  });
-  const rays = BOOMS[kind];
-  for (let i = 0; i < rays.length; i += 1) {
-    const ray = rays[i];
-    const speed = (28 + (i % 3) * 12) * Math.min(1.5, ship.scale);
-    emitPart(x, y, Math.cos(ray.a) * speed, Math.sin(ray.a) * speed, 0.34 + (i % 3) * 0.06, i % 2 ? paint.flame : paint.hot, 1);
+  const s = Math.min(1.5, ship.scale);
+  bursts.push({ x, y, kind: (Math.random() * BOOM_KINDS) | 0, t: now, scale: Math.min(2.3, ship.scale) });
+  const mx = Math.cos(ship.heading) * ship.speed * 0.6;
+  const my = Math.sin(ship.heading) * ship.speed * 0.6;
+  for (let i = 0; i < 16; i += 1) {
+    const a = Math.random() * Math.PI * 2;
+    const v = (80 + Math.random() * 110) * s;
+    emitPart(x, y, Math.cos(a) * v, Math.sin(a) * v, 0.2 + Math.random() * 0.25, i % 3 ? paint.hot : paint.flame, 1);
+  }
+  for (let i = 0; i < 12; i += 1) {
+    const a = Math.random() * Math.PI * 2;
+    const v = (20 + Math.random() * 70) * s;
+    emitPart(x, y, mx + Math.cos(a) * v, my + Math.sin(a) * v, 0.7 + Math.random() * 0.7, paint.debris[i % 4], 1, i % 3 ? 1 : 2);
   }
 }
 
@@ -1811,7 +1649,6 @@ function runFleet(ctx, dpr, now, dt, motionDt, w, h, cx, cy, orbit) {
   const world = fleetWorld(w, h, cx, cy, orbit);
   ensureFleet(world, now);
   refreshHover();
-  const blocks = chromeBlocks();
   const want = fleetTarget(w, h);
   for (let i = 0; i < ships.length; i += 1) {
     const ship = ships[i];
@@ -1820,7 +1657,7 @@ function runFleet(ctx, dpr, now, dt, motionDt, w, h, cx, cy, orbit) {
       if (now >= ship.respawnAt) dropShip(ship, world, now);
       continue;
     }
-    if (motionDt) stepShip(ship, motionDt, world, blocks);
+    if (motionDt) stepShip(ship, motionDt, world);
   }
   if (motionDt) {
     separateShips(motionDt);
@@ -1843,7 +1680,7 @@ function runFleet(ctx, dpr, now, dt, motionDt, w, h, cx, cy, orbit) {
 }
 
 function drawBursts(ctx, dpr, now) {
-  const dur = reduced ? 220 : 520;
+  const dur = reduced ? 260 : 720;
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = false;
