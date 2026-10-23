@@ -149,6 +149,75 @@ p {
   border-color: rgba(197, 201, 234, 0.8);
 }
 
+.thrensy {
+  border-color: rgba(231, 182, 112, 0.5);
+  background: rgba(30, 27, 46, 0.66);
+  box-shadow:
+    inset 0 1px 0 rgba(231, 182, 112, 0.3),
+    0 10px 28px rgba(0, 0, 0, 0.28);
+  color: #f2f0fa;
+}
+
+.thrensy:hover {
+  background: rgba(46, 40, 62, 0.8);
+  border-color: rgba(231, 182, 112, 0.85);
+}
+
+/* Mascot: blinks at rest, happy eyes and one hop on hover (brand/mascot in the Thrensy repo). */
+.thrensy svg {
+  overflow: visible;
+}
+
+.thrensy .eyes {
+  transform-origin: 32px 28px;
+  animation: thrensy-blink 4.6s infinite;
+}
+
+.thrensy .happy {
+  opacity: 0;
+}
+
+.thrensy:hover .eyes,
+.thrensy:focus-visible .eyes {
+  opacity: 0;
+}
+
+.thrensy:hover .happy,
+.thrensy:focus-visible .happy {
+  opacity: 1;
+}
+
+.thrensy:hover svg {
+  animation: thrensy-hop 0.42s ease-out;
+}
+
+@keyframes thrensy-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes thrensy-hop {
+  40% {
+    transform: translateY(-3px) scaleY(1.06);
+  }
+  75% {
+    transform: translateY(0) scaleY(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thrensy .eyes,
+  .thrensy:hover svg {
+    animation: none;
+  }
+}
+
 .badge:focus-visible,
 .mark:focus-visible,
 .spin:focus-visible {

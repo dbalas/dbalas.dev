@@ -3,8 +3,8 @@ const core = document.querySelector(".core");
 const heading = document.querySelector("h1");
 const bio = document.querySelector("p");
 const badges = [...document.querySelectorAll(".badge")];
-const mark = document.querySelector(".mark");
-const orbiters = [...badges, mark];
+const marks = [...document.querySelectorAll(".mark")];
+const orbiters = [...badges, ...marks];
 const ctx = canvas.getContext("2d", { alpha: false });
 const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 let reduced = motionQuery.matches;
@@ -112,12 +112,8 @@ function measure(w, h) {
     }
   }
   const gap = narrow ? 10 : 16;
-  const widths = badges.map((badge) => badge.offsetWidth);
-  const offsets = [0];
-  for (let i = 1; i < widths.length; i += 1) {
-    const need = (widths[i - 1] + widths[i]) / 2 + gap;
-    offsets.push(offsets[i - 1] + 2 * Math.asin(Math.min(0.98, need / (2 * orbit))));
-  }
+  const offsets = arcOffsets(badges, gap, orbit);
+  const markOffsets = arcOffsets(marks, gap, orbit);
   layoutCache = {
     R,
     orbit,
@@ -127,9 +123,21 @@ function measure(w, h) {
     h,
     offsets,
     mid: offsets[offsets.length - 1] / 2,
+    markOffsets,
+    markMid: markOffsets[markOffsets.length - 1] / 2,
     speed: diskSpeed(R, orbit) * 0.8,
   };
   return layoutCache;
+}
+
+// Angles that space the pills along the orbit without overlap.
+function arcOffsets(els, gap, orbit) {
+  const offsets = [0];
+  for (let i = 1; i < els.length; i += 1) {
+    const need = (els[i - 1].offsetWidth + els[i].offsetWidth) / 2 + gap;
+    offsets.push(offsets[i - 1] + 2 * Math.asin(Math.min(0.98, need / (2 * orbit))));
+  }
+  return offsets;
 }
 
 function diskSpeed(R, rad) {
@@ -1739,7 +1747,7 @@ function frame(now) {
   lastNow = now;
   const motionDt = reduced ? 0 : dt;
   const { dpr, w, h } = fit();
-  const { R, orbit, cx, cy, offsets, mid, speed } = measure(w, h);
+  const { R, orbit, cx, cy, offsets, mid, markOffsets, markMid, speed } = measure(w, h);
   const clock = reduced ? 0 : now;
   const { back, wash, front } = ensureLayers(dpr, w, h, cx, cy, R);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1789,8 +1797,10 @@ function frame(now) {
     const ang = center + offsets[i] - mid;
     place(badges[i], cx + Math.cos(ang) * orbit, cy + Math.sin(ang) * orbit, cx, cy);
   }
-  const markAng = center + Math.PI;
-  place(mark, cx + Math.cos(markAng) * orbit, cy + Math.sin(markAng) * orbit, cx, cy);
+  for (let i = 0; i < marks.length; i += 1) {
+    const ang = center + Math.PI + markOffsets[i] - markMid;
+    place(marks[i], cx + Math.cos(ang) * orbit, cy + Math.sin(ang) * orbit, cx, cy);
+  }
   if (reduced && !fxLive()) {
     looping = false;
     return;
