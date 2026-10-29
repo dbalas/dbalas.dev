@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Meshmallow">
+<path d="M60 18 L94.4 34.6 L102.9 71.8 L79.1 101.6 L40.9 101.6 L17.1 71.8 L25.6 34.6 Z" fill="none" stroke="#3B2A20" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M60 18 L102.9 71.8 L40.9 101.6 L25.6 34.6 L94.4 34.6 L79.1 101.6 L17.1 71.8 Z M60 18 L79.1 101.6 L25.6 34.6 L102.9 71.8 L17.1 71.8 L94.4 34.6 L40.9 101.6 Z" fill="none" stroke="#3B2A20" stroke-width="1.6" stroke-linejoin="round"/>
+<g fill="#FFF6EC" stroke="#3B2A20" stroke-width="3">
+<circle cx="60" cy="18" r="9"/>
+<circle cx="94.4" cy="34.6" r="9"/>
+<circle cx="102.9" cy="71.8" r="9"/>
+<circle cx="79.1" cy="101.6" r="9"/>
+<circle cx="40.9" cy="101.6" r="9"/>
+<circle cx="17.1" cy="71.8" r="9"/>
+<circle cx="25.6" cy="34.6" r="9"/>
+</g>
+<g fill="#E9A15B">
+<circle cx="60" cy="18" r="4.5"/>
+<circle cx="94.4" cy="34.6" r="4.5"/>
+<circle cx="102.9" cy="71.8" r="4.5"/>
+<circle cx="79.1" cy="101.6" r="4.5"/>
+<circle cx="40.9" cy="101.6" r="4.5"/>
+<circle cx="17.1" cy="71.8" r="4.5"/>
+<circle cx="25.6" cy="34.6" r="4.5"/>
+</g>
+<g transform="translate(30 29) scale(0.5)">
+<path d="M28 44 L28 88 A32 11 0 0 0 92 88 L92 44 Z" fill="#FFF6EC"/>
+<path d="M28 44 L28 58 A32 11 0 0 0 92 58 L92 44 Z" fill="#E9A15B"/>
+<path d="M28 44 L28 88 A32 11 0 0 0 92 88 L92 44" fill="none" stroke="#3B2A20" stroke-width="7" stroke-linejoin="round"/>
+<ellipse cx="60" cy="44" rx="32" ry="11" fill="#D9823F" stroke="#3B2A20" stroke-width="7"/>
+<ellipse cx="48" cy="72" rx="4.5" ry="5.5" fill="#3B2A20"/>
+<ellipse cx="72" cy="72" rx="4.5" ry="5.5" fill="#3B2A20"/>
+<path d="M53 81 Q60 88 67 81" fill="none" stroke="#3B2A20" stroke-width="4" stroke-linecap="round"/>
+</g>
+</svg>
